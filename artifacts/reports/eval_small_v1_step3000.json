@@ -1,0 +1,34 @@
+{
+  "checkpoint": "artifacts\\checkpoints\\small_v1\\step_0003000",
+  "device": "cuda",
+  "generation": {
+    "mean_repetition_3gram": 0.05257936507936509,
+    "samples": 8,
+    "tokens_per_s": 66.50645244815789
+  },
+  "lineage": {
+    "ancestry": [],
+    "init_seed": 42,
+    "init_weights_sha256": "2d9a29a50e7e04b7f3aa5ac79c1401748d7529830ebad2add193acdb135531aa",
+    "parent_checkpoint_sha256": null,
+    "root": "random_init"
+  },
+  "parameters": 5430528,
+  "peak_gpu_mem_mb": 147.88916015625,
+  "sample_texts": [
+    "Title: Metallicity of pulsar timing: a pre-registered study\nDocument: SYN-005150    Field: astronomy    Year: 2001\n\nAbstract\nWe investigate how metallicity in pulsar timing varies with sample age. Using spectroscopic survey, we measured metallicity across 153 samples and compared them with 232 control samples. Metallicity decreased by 10.2 percent under the treatment condition, an effect that was not robust to outliers.\n\n1. Introduction\nUnderstanding metallicity in pulsar timing matters for astronomy because small changes can have large downstream effects. The goal of this study is to quantify the relationship between sample age and metallicity in pulsar timing. Prior work relied on spectroscopic survey; here we combine it with radio interferometry to cross-check the result. Whether metallicity changes together with metallicity remains an open question.\n\n2. Methods\nWe collected 374 samples of pulsar timing and 198 matched controls between 1999 and 2002. Spectroscopic survey provided an independent check on metallicity. Radial velocity monitoring was used to measure metallicity; each measurement was repeated 4 times. Sample age was varied in 4 steps from 3.3 to 17.0. Missing values affected 4.0 percent of records and were handled",
+    "Title: Grain yield of legume intercrops: a comparative study\nDocument: SYN-003834    Field: agronomy    Year: 2004\n\nAbstract\nWe investigate how grain yield in legume intercrops varies with annealing rate. Using randomised field trial, we measured grain yield across 119 samples and compared them with 341 control samples. We also examined water use efficiency using growth-chamber experiment to test whether the change was specific to grain yield. Grain yield increased by 47.3 percent under the treatment condition, an effect that was statistically uncertain. These results suggest a link between annealing rate and grain yield, but replication is required before any causal claim is made.\n\n1. Introduction\nWhether water use efficiency changes together with grain yield remains an open question. Prior work relied on randomised field trial; here we combine it with growth-chamber experiment to cross-check the result. Understanding grain yield in legume intercrops matters for agronomy because small changes can have large downstream effects. Earlier studies reported that grain yield depends on annealing rate, but the evidence was inconsistent across laboratories. We state two hypotheses: H1 predicts that grain yield decreased with annealing rate; H0 predicts no change.\n\n2. Methods\nOutliers beyond 2.5"
+  ],
+  "step": 3000,
+  "test": {
+    "loss": 0.38491303494998386,
+    "perplexity": 1.4694865219153024,
+    "tokens": 143360
+  },
+  "tokenizer_fingerprint": "938ff9a90f1c1d8a1834b915377b2f66ed3a7769bd6ddcaa0cf96a1e5a9d7b2a",
+  "val": {
+    "loss": 0.38682499615585103,
+    "perplexity": 1.4722988107746326,
+    "tokens": 139264
+  }
+}
