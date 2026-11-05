@@ -1,0 +1,30 @@
+[project]
+name = "researchos"
+version = "0.1.0"
+description = "RESEARCHOS - self-trained Transformer + custom multi-agent research system (no pretrained weights, no hosted AI APIs)"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.4",
+    "numpy>=1.26",
+    "safetensors>=0.4",
+    "pyyaml>=6.0",
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+# Phase 7 PDF text extraction. AGPL-3.0 (or Artifex commercial). Keep <2: 2.x requires ML layout models.
+corpus = ["pymupdf>=1.28,<2"]
+api = ["fastapi>=0.115", "uvicorn>=0.30", "sqlalchemy>=2.0", "argon2-cffi>=23", "python-multipart", "httpx", "alembic", "reportlab"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q -p no:cacheprovider"
+markers = [
+    "gpu: test requires a CUDA device",
+    "slow: test takes more than a few seconds",
+]
+
+[tool.setuptools]
+packages = []  # this repository is an application, not a distributable package: `pip install -e ".[api,dev]"` installs dependencies only

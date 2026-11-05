@@ -1,0 +1,44 @@
+# environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+pip-cache/
+.env
+.env.*
+!.env.example
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# private / large data (manifests ARE committed, raw & processed data are not)
+datasets/raw/
+datasets/processed/
+datasets/splits/
+
+# model artifacts (reproducible from configs + manifests)
+artifacts/checkpoints/
+artifacts/experiment_runs/
+artifacts/reports/*.tmp
+*.safetensors
+*.pt
+*.bin
+
+# runtime state: databases, per-user data, uploaded documents, training jobs, experiment outputs
+artifacts/api/
+artifacts/agent_runs/*.db
+artifacts/corpus/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+
+# Claude Code local settings
+.claude/
+*.egg-info/
