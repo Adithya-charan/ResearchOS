@@ -1,0 +1,535 @@
+{
+  "run_id": "run_8db5f24626f0",
+  "status": "completed",
+  "stop_reason": null,
+  "summary": {
+    "agents": {
+      "critic": {
+        "succeeded": 1,
+        "tasks": 1
+      },
+      "discovery": {
+        "succeeded": 3,
+        "tasks": 3
+      },
+      "supervisor": {
+        "succeeded": 1,
+        "tasks": 1
+      }
+    },
+    "assessment": {
+      "accepted": [
+        {
+          "coverage": 0.875,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p002",
+          "score": 30.849892,
+          "section": ""
+        },
+        {
+          "coverage": 0.875,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p001",
+          "score": 29.93708,
+          "section": ""
+        },
+        {
+          "coverage": 0.875,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p010",
+          "score": 27.968076,
+          "section": ""
+        },
+        {
+          "coverage": 0.875,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p006",
+          "score": 27.948848,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000124",
+          "page_number": null,
+          "passage_id": "syn-000124:p002",
+          "score": 26.20024,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000124",
+          "page_number": null,
+          "passage_id": "syn-000124:p000",
+          "score": 24.882923,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000804",
+          "page_number": null,
+          "passage_id": "syn-000804:p000",
+          "score": 24.882923,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "soil",
+            "organic",
+            "matter",
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p000",
+          "score": 24.53102,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter"
+          ],
+          "document_id": "syn-000127",
+          "page_number": null,
+          "passage_id": "syn-000127:p002",
+          "score": 22.547138,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter"
+          ],
+          "document_id": "syn-000858",
+          "page_number": null,
+          "passage_id": "syn-000858:p002",
+          "score": 21.565244,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter"
+          ],
+          "document_id": "syn-000003",
+          "page_number": null,
+          "passage_id": "syn-000003:p001",
+          "score": 21.242079,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter"
+          ],
+          "document_id": "syn-000127",
+          "page_number": null,
+          "passage_id": "syn-000127:p001",
+          "score": 21.231931,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter"
+          ],
+          "document_id": "syn-000858",
+          "page_number": null,
+          "passage_id": "syn-000858:p001",
+          "score": 21.231931,
+          "section": ""
+        },
+        {
+          "coverage": 0.625,
+          "covered_terms": [
+            "anneal",
+            "rate",
+            "soil",
+            "organic",
+            "matter"
+          ],
+          "document_id": "syn-000003",
+          "page_number": null,
+          "passage_id": "syn-000003:p002",
+          "score": 20.35178,
+          "section": ""
+        }
+      ],
+      "accepted_evidence": [
+        {
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p002"
+        },
+        {
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p001"
+        },
+        {
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p010"
+        },
+        {
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p006"
+        },
+        {
+          "document_id": "syn-000124",
+          "page_number": null,
+          "passage_id": "syn-000124:p002"
+        },
+        {
+          "document_id": "syn-000124",
+          "page_number": null,
+          "passage_id": "syn-000124:p000"
+        },
+        {
+          "document_id": "syn-000804",
+          "page_number": null,
+          "passage_id": "syn-000804:p000"
+        },
+        {
+          "document_id": "syn-000007",
+          "page_number": null,
+          "passage_id": "syn-000007:p000"
+        },
+        {
+          "document_id": "syn-000127",
+          "page_number": null,
+          "passage_id": "syn-000127:p002"
+        },
+        {
+          "document_id": "syn-000858",
+          "page_number": null,
+          "passage_id": "syn-000858:p002"
+        },
+        {
+          "document_id": "syn-000003",
+          "page_number": null,
+          "passage_id": "syn-000003:p001"
+        },
+        {
+          "document_id": "syn-000127",
+          "page_number": null,
+          "passage_id": "syn-000127:p001"
+        },
+        {
+          "document_id": "syn-000858",
+          "page_number": null,
+          "passage_id": "syn-000858:p001"
+        },
+        {
+          "document_id": "syn-000003",
+          "page_number": null,
+          "passage_id": "syn-000003:p002"
+        }
+      ],
+      "documents": 6,
+      "followup_proposed": false,
+      "reasons": [],
+      "rejected": [
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000157",
+          "page_number": null,
+          "passage_id": "syn-000157:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        },
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000189",
+          "page_number": null,
+          "passage_id": "syn-000189:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        },
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000400",
+          "page_number": null,
+          "passage_id": "syn-000400:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        },
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000738",
+          "page_number": null,
+          "passage_id": "syn-000738:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        },
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-000982",
+          "page_number": null,
+          "passage_id": "syn-000982:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        },
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-001000",
+          "page_number": null,
+          "passage_id": "syn-001000:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        },
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-001013",
+          "page_number": null,
+          "passage_id": "syn-001013:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        },
+        {
+          "coverage": 0.25,
+          "covered_terms": [
+            "rice",
+            "paddy"
+          ],
+          "document_id": "syn-001044",
+          "page_number": null,
+          "passage_id": "syn-001044:p000",
+          "reason": "low_term_coverage",
+          "score": 12.592902,
+          "section": ""
+        }
+      ],
+      "sufficient": true,
+      "uncovered_terms": [
+        "affect"
+      ]
+    },
+    "corpus": {
+      "documents": 1500,
+      "passages": 14515
+    },
+    "evidence": [
+      {
+        "document_id": "syn-000007",
+        "page_number": null,
+        "passage_id": "syn-000007:p002"
+      },
+      {
+        "document_id": "syn-000007",
+        "page_number": null,
+        "passage_id": "syn-000007:p001"
+      },
+      {
+        "document_id": "syn-000007",
+        "page_number": null,
+        "passage_id": "syn-000007:p010"
+      },
+      {
+        "document_id": "syn-000007",
+        "page_number": null,
+        "passage_id": "syn-000007:p006"
+      },
+      {
+        "document_id": "syn-000124",
+        "page_number": null,
+        "passage_id": "syn-000124:p002"
+      },
+      {
+        "document_id": "syn-000124",
+        "page_number": null,
+        "passage_id": "syn-000124:p000"
+      },
+      {
+        "document_id": "syn-000804",
+        "page_number": null,
+        "passage_id": "syn-000804:p000"
+      },
+      {
+        "document_id": "syn-000007",
+        "page_number": null,
+        "passage_id": "syn-000007:p000"
+      },
+      {
+        "document_id": "syn-000127",
+        "page_number": null,
+        "passage_id": "syn-000127:p002"
+      },
+      {
+        "document_id": "syn-000858",
+        "page_number": null,
+        "passage_id": "syn-000858:p002"
+      },
+      {
+        "document_id": "syn-000003",
+        "page_number": null,
+        "passage_id": "syn-000003:p001"
+      },
+      {
+        "document_id": "syn-000127",
+        "page_number": null,
+        "passage_id": "syn-000127:p001"
+      },
+      {
+        "document_id": "syn-000858",
+        "page_number": null,
+        "passage_id": "syn-000858:p001"
+      },
+      {
+        "document_id": "syn-000003",
+        "page_number": null,
+        "passage_id": "syn-000003:p002"
+      }
+    ],
+    "failed_tasks": [],
+    "limitations": [
+      "Findings come only from the documents indexed for this run. Failing to find a close match is not proof that an idea has never been published.",
+      "Evidence links point to indexed passages; whether a passage truly supports a claim still needs human review.",
+      "Model notes (if any) come from an experimental small language model and are untrusted drafts, not evidence."
+    ],
+    "model_notes": [
+      {
+        "agent_type": "supervisor",
+        "task_id": "task_38406654ba00",
+        "text": "-tolerant maize: a simulation-based study\nDocument: SYN-004435    Field: agronomy    Year: 2010\n\nAbstract\nWe investigate how turnover frequency",
+        "trusted": false
+      },
+      {
+        "agent_type": "critic",
+        "task_id": "task_4def17e1048e",
+        "text": "Conclusion. In this cross-sectional study, turnover frequency in rice paddies increased with annealing rate. The finding is smaller than reported in earlier work and should be treated as a hypothesis until independently replicated.",
+        "trusted": false
+      }
+    ],
+    "model_tokens_used": 122,
+    "question": "How does annealing rate affect soil organic matter in rice paddies?",
+    "task_counts": {
+      "succeeded": 5
+    },
+    "uncertainties": [
+      "Scoping is lexical (stopword splitting); it does not understand the meaning of the question.",
+      "Searched 1500 documents / 14515 passages with lexical BM25 only; relevant text that uses different words would not be found.",
+      "Checked 22 candidate passage(s) lexically (14 accepted). Term overlap does not show that a passage supports a specific claim; human review is required.",
+      "Question terms with no accepted evidence: affect."
+    ]
+  }
+}
