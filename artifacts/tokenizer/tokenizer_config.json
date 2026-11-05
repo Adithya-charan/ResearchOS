@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "normalization": "NFC",
+  "num_merges": 2183,
+  "pretokenize_pattern": " ?[^\\W\\d_]+| ?\\d| ?(?:[^\\s\\w]|_)+|\\s+(?!\\S)|\\s+|.",
+  "special_tokens": [
+    "<PAD>",
+    "<UNK>",
+    "<BOS>",
+    "<EOS>",
+    "<DOC>",
+    "<SEP>"
+  ],
+  "training": {
+    "manifest_sha256": "7f23a4f99aaf5a93390a322a8aade8ce4beee21d9c92edb87ac021c0944e51ef",
+    "num_train_documents": 5648,
+    "trained_on_split": "train"
+  },
+  "vocab_size": 2445
+}
