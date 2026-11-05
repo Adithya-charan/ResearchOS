@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install CPU PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install dependencies
+        run: pip install -e ".[dev,api,corpus]"
+      - name: Run test suite
+        run: python -m pytest
+
+  hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No large or binary model artifacts committed
+        run: |
+          if git ls-files | grep -E '\.(safetensors|pt|bin|db|sqlite3)$'; then
+            echo "model weights, tensors and databases must not be committed"; exit 1
+          fi
+      - name: No oversized files
+        run: |
+          big=$(git ls-files -z | xargs -0 du -k | awk '$1 > 5120 {print $2}')
+          if [ -n "$big" ]; then echo "files over 5 MB:"; echo "$big"; exit 1; fi
