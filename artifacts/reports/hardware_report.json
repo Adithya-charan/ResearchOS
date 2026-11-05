@@ -1,0 +1,130 @@
+{
+  "machine": {
+    "cpu": [
+      {
+        "Name": "13th Gen Intel(R) Core(TM) i7-13700H",
+        "NumberOfCores": 14,
+        "NumberOfLogicalProcessors": 20
+      }
+    ],
+    "cpu_threads_torch": 14,
+    "cuda_available": true,
+    "disk_project_drive_free_gb": 198.5,
+    "gpu": {
+      "bf16_supported": true,
+      "compute_capability": "8.6",
+      "multi_processors": 20,
+      "name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+      "vram_gb": 6.0
+    },
+    "os": "Windows-10-10.0.26300-SP0",
+    "python": "3.11.0",
+    "ram_gb": 15.7,
+    "timestamp": "2026-11-05T09:09:14+00:00",
+    "torch": "2.14.0+cu130",
+    "torch_cuda_build": "13.0"
+  },
+  "matmul_tflops": {
+    "cpu_fp32": 0.116,
+    "gpu_bf16": 8.78,
+    "gpu_fp32": 3.15
+  },
+  "training_profile_bf16_adamw": [
+    {
+      "batch": 4,
+      "config": "small_6M",
+      "params_M": 5.9,
+      "peak_mem_gb": 0.2,
+      "seq": 256,
+      "tokens_per_s": 17606
+    },
+    {
+      "batch": 8,
+      "config": "small_6M",
+      "params_M": 5.9,
+      "peak_mem_gb": 0.31,
+      "seq": 256,
+      "tokens_per_s": 36700
+    },
+    {
+      "batch": 16,
+      "config": "small_6M",
+      "params_M": 5.9,
+      "peak_mem_gb": 0.51,
+      "seq": 256,
+      "tokens_per_s": 79013
+    },
+    {
+      "batch": 4,
+      "config": "base_16M",
+      "params_M": 15.9,
+      "peak_mem_gb": 0.39,
+      "seq": 256,
+      "tokens_per_s": 12363
+    },
+    {
+      "batch": 8,
+      "config": "base_16M",
+      "params_M": 15.9,
+      "peak_mem_gb": 0.56,
+      "seq": 256,
+      "tokens_per_s": 27493
+    },
+    {
+      "batch": 16,
+      "config": "base_16M",
+      "params_M": 15.9,
+      "peak_mem_gb": 0.88,
+      "seq": 256,
+      "tokens_per_s": 54242
+    },
+    {
+      "batch": 4,
+      "config": "medium_34M",
+      "params_M": 33.8,
+      "peak_mem_gb": 0.71,
+      "seq": 256,
+      "tokens_per_s": 9733
+    },
+    {
+      "batch": 8,
+      "config": "medium_34M",
+      "params_M": 33.8,
+      "peak_mem_gb": 0.94,
+      "seq": 256,
+      "tokens_per_s": 22643
+    },
+    {
+      "batch": 16,
+      "config": "medium_34M",
+      "params_M": 33.8,
+      "peak_mem_gb": 1.42,
+      "seq": 256,
+      "tokens_per_s": 31219
+    },
+    {
+      "batch": 4,
+      "config": "large_88M",
+      "params_M": 88.4,
+      "peak_mem_gb": 1.59,
+      "seq": 256,
+      "tokens_per_s": 8289
+    },
+    {
+      "batch": 8,
+      "config": "large_88M",
+      "params_M": 88.4,
+      "peak_mem_gb": 1.98,
+      "seq": 256,
+      "tokens_per_s": 12450
+    },
+    {
+      "batch": 16,
+      "config": "large_88M",
+      "params_M": 88.4,
+      "peak_mem_gb": 2.74,
+      "seq": 256,
+      "tokens_per_s": 14263
+    }
+  ]
+}
