@@ -16,59 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
-
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS schema_info (version INTEGER NOT NULL);
-CREATE TABLE IF NOT EXISTS projects (
-    id TEXT PRIMARY KEY, title TEXT NOT NULL, question TEXT NOT NULL, created_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS runs (
-    id TEXT PRIMARY KEY,
-    project_id TEXT NOT NULL REFERENCES projects(id),
-    run_number INTEGER NOT NULL,
-    question TEXT NOT NULL,
-    status TEXT NOT NULL,
-    control TEXT NOT NULL DEFAULT 'run',          -- run | pause | cancel (requested by a user/API)
-    limits_json TEXT NOT NULL,
-    config_json TEXT NOT NULL DEFAULT '{}',
-    created_at TEXT NOT NULL, started_at TEXT, completed_at TEXT,
-    stop_reason TEXT,
-    model_tokens_used INTEGER NOT NULL DEFAULT 0,
-    elapsed_s REAL NOT NULL DEFAULT 0,
-    summary_json TEXT);
-CREATE TABLE IF NOT EXISTS tasks (
-    seq INTEGER PRIMARY KEY AUTOINCREMENT,
-    id TEXT NOT NULL UNIQUE,
-    run_id TEXT NOT NULL REFERENCES runs(id),
-    parent_task_id TEXT,
-    agent_type TEXT NOT NULL,
-    title TEXT NOT NULL,
-    task_input TEXT NOT NULL DEFAULT '{}',
-    depends_on TEXT NOT NULL DEFAULT '[]',
-    task_output TEXT,
-    status TEXT NOT NULL,
-    iteration INTEGER NOT NULL DEFAULT 0,
-    retry_count INTEGER NOT NULL DEFAULT 0,
-    not_before REAL NOT NULL DEFAULT 0,
-    error TEXT,
-    requires_approval INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL, started_at TEXT, completed_at TEXT);
-CREATE INDEX IF NOT EXISTS idx_tasks_run ON tasks(run_id, seq);
-CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL, task_id TEXT, event_type TEXT NOT NULL,
-    payload_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL);
-CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id, id);
-CREATE TABLE IF NOT EXISTS approvals (
-    id TEXT PRIMARY KEY, run_id TEXT NOT NULL, task_id TEXT NOT NULL,
-    requested_action TEXT NOT NULL, details_json TEXT NOT NULL DEFAULT '{}',
-    decision TEXT, reviewer_id TEXT, notes TEXT, created_at TEXT NOT NULL, decided_at TEXT);
-CREATE TABLE IF NOT EXISTS memory (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id TEXT NOT NULL, key TEXT NOT NULL, value_json TEXT NOT NULL,
-    run_id TEXT, task_id TEXT, created_at TEXT NOT NULL);
-CREATE INDEX IF NOT EXISTS idx_memory_key ON memory(project_id, key, id);
-"""
+from agent_engine.state import migrate
 
 _RUN_COLUMNS = {
     "status", "control", "started_at", "completed_at", "stop_reason", "model_tokens_used", "elapsed_s",
@@ -107,9 +55,10 @@ class Store:
             self._conn.execute("PRAGMA busy_timeout = 5000")
             if self.path != ":memory:":
                 self._conn.execute("PRAGMA journal_mode = WAL")
-            self._conn.executescript(SCHEMA)
-            if self._conn.execute("SELECT COUNT(*) FROM schema_info").fetchone()[0] == 0:
-                self._conn.execute("INSERT INTO schema_info VALUES (?)", (SCHEMA_VERSION,))
+        if self.path == ":memory:":
+            migrate.apply_in_memory(self._conn)
+        else:
+            migrate.upgrade(self.path)  # Alembic: creates, upgrades or adopts the schema; refuses unknown ones
 
     def close(self) -> None:
         with self._lock:

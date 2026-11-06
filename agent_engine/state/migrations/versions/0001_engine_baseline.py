@@ -1,0 +1,82 @@
+"""engine baseline: projects, runs, tasks, events, approvals, memory
+
+Revision ID: 0001
+Revises:
+Create Date: 2026-11-06
+"""
+from alembic import op
+
+revision = "0001"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+# Frozen copy of the schema the engine created itself before migrations existed (idempotent, so legacy databases that
+# match it exactly are adopted by stamping this revision rather than re-running it).
+UP: list[str] = [
+    "CREATE TABLE IF NOT EXISTS schema_info (version INTEGER NOT NULL)",
+    "INSERT INTO schema_info SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_info)",
+    """CREATE TABLE IF NOT EXISTS projects (
+    id TEXT PRIMARY KEY, title TEXT NOT NULL, question TEXT NOT NULL, created_at TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS runs (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id),
+    run_number INTEGER NOT NULL,
+    question TEXT NOT NULL,
+    status TEXT NOT NULL,
+    control TEXT NOT NULL DEFAULT 'run',
+    limits_json TEXT NOT NULL,
+    config_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL, started_at TEXT, completed_at TEXT,
+    stop_reason TEXT,
+    model_tokens_used INTEGER NOT NULL DEFAULT 0,
+    elapsed_s REAL NOT NULL DEFAULT 0,
+    summary_json TEXT)""",
+    """CREATE TABLE IF NOT EXISTS tasks (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT NOT NULL UNIQUE,
+    run_id TEXT NOT NULL REFERENCES runs(id),
+    parent_task_id TEXT,
+    agent_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    task_input TEXT NOT NULL DEFAULT '{}',
+    depends_on TEXT NOT NULL DEFAULT '[]',
+    task_output TEXT,
+    status TEXT NOT NULL,
+    iteration INTEGER NOT NULL DEFAULT 0,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    not_before REAL NOT NULL DEFAULT 0,
+    error TEXT,
+    requires_approval INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL, started_at TEXT, completed_at TEXT)""",
+    "CREATE INDEX IF NOT EXISTS idx_tasks_run ON tasks(run_id, seq)",
+    """CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL, task_id TEXT, event_type TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL)""",
+    "CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id, id)",
+    """CREATE TABLE IF NOT EXISTS approvals (
+    id TEXT PRIMARY KEY, run_id TEXT NOT NULL, task_id TEXT NOT NULL,
+    requested_action TEXT NOT NULL, details_json TEXT NOT NULL DEFAULT '{}',
+    decision TEXT, reviewer_id TEXT, notes TEXT, created_at TEXT NOT NULL, decided_at TEXT)""",
+    """CREATE TABLE IF NOT EXISTS memory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id TEXT NOT NULL, key TEXT NOT NULL, value_json TEXT NOT NULL,
+    run_id TEXT, task_id TEXT, created_at TEXT NOT NULL)""",
+    "CREATE INDEX IF NOT EXISTS idx_memory_key ON memory(project_id, key, id)",
+]
+DOWN: list[str] = [
+    "DROP TABLE IF EXISTS memory", "DROP TABLE IF EXISTS approvals", "DROP TABLE IF EXISTS events",
+    "DROP TABLE IF EXISTS tasks", "DROP TABLE IF EXISTS runs", "DROP TABLE IF EXISTS projects",
+    "DROP TABLE IF EXISTS schema_info",
+]
+
+
+def upgrade() -> None:
+    for statement in UP:
+        op.execute(statement)
+
+
+def downgrade() -> None:
+    for statement in DOWN:
+        op.execute(statement)

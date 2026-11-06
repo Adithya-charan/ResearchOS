@@ -9,6 +9,8 @@ dependencies = [
     "safetensors>=0.4",
     "pyyaml>=6.0",
     "pydantic>=2.6",
+    "alembic",
+    "sqlalchemy>=2.0",
 ]
 
 [project.optional-dependencies]
