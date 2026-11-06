@@ -20,6 +20,7 @@ sandboxed and reproducible experiments, and human review at every consequential 
 - [Quick start](#quick-start)
 - [HTTP API](#http-api)
 - [Security model](#security-model)
+- [Deployment (Docker)](#deployment-docker)
 - [Configuration](#configuration)
 - [Testing and CI](#testing-and-ci)
 - [Repository layout](#repository-layout)
@@ -156,6 +157,21 @@ Authentication is a server-side session in an HttpOnly cookie. Every state-chang
 
 See [SECURITY.md](SECURITY.md) to report a vulnerability.
 
+## Deployment (Docker)
+
+```bash
+docker compose up --build            # API on http://127.0.0.1:8000, state in the `researchos-data` volume
+docker compose logs -f api
+```
+
+* Runs as an unprivileged user with a read-only root filesystem, all Linux capabilities dropped and `no-new-privileges`.
+* The port is bound to loopback. Put a TLS reverse proxy in front, then set `RESEARCHOS_COOKIE_SECURE=true`,
+  `RESEARCHOS_ALLOWED_ORIGINS` and `RESEARCHOS_TRUSTED_PROXIES` (the proxy's address) so rate limiting sees real client IPs.
+* Operator checkpoints are mounted read-only from `./artifacts/checkpoints` (override with `RESEARCHOS_MODELS_PATH`).
+* **No PostgreSQL / Redis service is included** because the app does not use them yet, and **the Docker socket is deliberately not
+  mounted**, so inside the container experiments are refused unless you set the non-isolating development fallback.
+* CI builds and runs the image; it has not been built on the author's machine (no Docker there).
+
 ## Configuration
 
 All settings are environment variables prefixed `RESEARCHOS_` (see [`api/config.py`](api/config.py) and [`.env.example`](.env.example)).
@@ -170,6 +186,7 @@ All settings are environment variables prefixed `RESEARCHOS_` (see [`api/config.
 | `RESEARCHOS_MODELS_DIR` | `artifacts/checkpoints` | operator checkpoints shown in the model registry |
 | `RESEARCHOS_INFERENCE_DEVICE` | `cpu` | device for local generation |
 | `RESEARCHOS_ALLOW_WEAK_SANDBOX` | `false` | permit the **non-isolating** fallback when Docker is unavailable (development only) |
+| `RESEARCHOS_TRUSTED_PROXIES` | `127.0.0.1` | addresses whose `X-Forwarded-For` is trusted |
 | `RESEARCHOS_DEMO_CORPUS` | `false` | let projects without documents search the synthetic demo corpus |
 
 ## Testing and CI
@@ -199,10 +216,10 @@ path traversal, tamper detection, approval-bound execution). GitHub Actions runs
 
 ## Roadmap
 
-Done: model pipeline, agent engine, corpus, research workflow, experiments, and the API (auth, projects, runs, corpus,
-approvals, experiments, reports, models, SSE).
+Done: model pipeline, agent engine, corpus, research workflow, experiments, the API (auth, projects, runs, corpus,
+approvals, experiments, reports, models, SSE) and Docker packaging.
 
-Next: Docker / Compose deployment, Alembic migrations, PostgreSQL + Redis, the Next.js website, OCR and CSV ingestion,
+Next: Alembic migrations, PostgreSQL + Redis, the Next.js website, OCR and CSV ingestion,
 wiring the local model into agent text with budgets, single-task retry, SymPy / Z3 checks, a real licensed training corpus
 (your decision), gVisor / Firecracker evaluation.
 
