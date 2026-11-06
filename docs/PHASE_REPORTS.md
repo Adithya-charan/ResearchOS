@@ -382,10 +382,46 @@ while a run executes. Limitation: a run searches a snapshot taken when it starts
   `RESEARCHOS_INFERENCE_DEVICE` says otherwise; no streaming tokens (needs the SSE increment); the models are tiny demo models that know
   no real science; weights cannot be downloaded or uploaded through the API.
 
-**Not done yet (honest list from the master prompt):** OCR (Tesseract) and CSV ingestion; WebSocket/SSE
-streaming (events are pollable via `/runs/{id}/events?after=`); single-task retry; Alembic migrations (tables are created with
+**Increment 6 - live streams over Server-Sent Events (done, `tests/test_api_sse.py` + stream tests in `tests/test_api_models.py`; full suite 578 passing):**
+- `GET /runs/{id}/stream`, `/training/jobs/{id}/stream`, `/experiments/{id}/stream` and `POST /models/{id}/generate/stream` (token-by-token;
+  use `fetch`, since `EventSource` cannot POST). Run and training streams carry monotonically increasing ids (engine event id / metrics line
+  number), so reconnecting with `Last-Event-ID` (or `?after=`) resumes with no gaps and no repeats (tested). Experiment streams resume with
+  `?stdout=&stderr=` byte offsets.
+- **Built on polling the same durable state the REST endpoints read** (engine event log, `metrics.jsonl`, experiment status and log files); there
+  is no separate message bus, so nothing is lost if a client misses a frame. Latency is the poll interval (0.5 s by default).
+- Streams are bounded: 4 per user and 16 in total (429 beyond that), a 10 minute lifetime (`end` event with `max_duration`; EventSource
+  reconnects), a 15 s heartbeat, and the viewer's session is re-checked every 30 s (a logged-out viewer gets `end: session_ended`).
+  Slots are released on finish, disconnect or error; generation stops and frees the model slot when the client leaves.
+- Frame safety: event names are restricted to `[a-z0-9_.-]`, data is always one line of JSON, so program output or a prompt containing
+  newlines, `event:` or `id:` text cannot forge fields or events (tested). Another user's object answers 404; unauthenticated answers 401.
+- Token streaming decodes cumulatively and holds back a half-decoded UTF-8 character; with the same seed the streamed text equals the
+  non-streaming text (tested). Admission rules (size caps, rate limit, context length) are answered as HTTP errors before the stream starts.
+- Limits: Starlette's test client buffers responses, so the tests prove frame content, ordering, resumption and slot release but not
+  wall-clock incremental delivery - that was **not** verified against a live server in this increment; polling (not push) means up to
+  one interval of delay; no WebSocket transport.
+
+**Increment 7 - container deployment (done, `tests/test_deploy.py`, 5 tests; full suite 583 passing; the image itself is built only in CI):**
+- `Dockerfile` (python:3.11-slim, CPU PyTorch, dependencies layer before source, unprivileged uid 10001, `HEALTHCHECK` on `/health`, all mutable
+  state under the `/data` volume, no weights/datasets/databases/`.env` in the image), `.dockerignore`, and `docker-compose.yml` (one `api`
+  service: loopback-only port, read-only root filesystem + tmpfs `/tmp`, `cap_drop: ALL`, `no-new-privileges`, memory and pid limits, operator
+  checkpoints mounted read-only at `/models`, graceful stop 30 s so training children can checkpoint).
+- `scripts/serve_api.py` now honours `RESEARCHOS_TRUSTED_PROXIES` (default `127.0.0.1`) so rate limiting and audit see the real client IP behind a
+  reverse proxy, and ignores forwarded headers from anyone else; it also sets a graceful-shutdown window.
+- **Deliberately not included:** PostgreSQL/Redis (the app does not use them yet - adding services that do nothing would misrepresent the
+  deployment) and the Docker socket (mounting it would give the API root on the host). Consequently experiments cannot use the Docker sandbox
+  from inside this container and are refused with 503 unless the operator sets `RESEARCHOS_ALLOW_WEAK_SANDBOX=true` (non-isolating,
+  development only). Running the sandbox properly from a container needs a separate, narrowly-scoped runner - future work.
+- **Verification:** Docker is not installed on the development machine, so the image was **not built or run here**. Tests check statically that every
+  `COPY` source exists and is not dockerignored, the user is non-root, the compose file grants nothing extra, and the app starts from
+  container-style environment variables with directories that do not exist yet. The new CI `docker` job builds the image, validates the compose
+  file, runs the container read-only with all capabilities dropped, checks uid 10001, `/health`, and a register + `/auth/me` round trip.
+- Limits: single process / single host; SQLite on a named volume; CPU only; training inside the container needs the processed dataset mounted
+  (not shipped) and is off by default; no TLS termination bundled.
+
+**Not done yet (honest list from the master prompt):** OCR (Tesseract) and CSV ingestion; WebSocket transport; single-task retry; Alembic migrations (tables are created with
 `create_all`); PostgreSQL and Redis (SQLite only, in-process rate limiting); malware-scan hook; agents still deterministic - the
-local Transformer is **not** yet wired into the agents' text (only optional budgeted notes exist); SymPy checks; Dockerfile/compose;
+local Transformer is **not** yet wired into the agents' text (only optional budgeted notes exist); SymPy checks; a narrowly-scoped sandbox runner for
+container deployments;
 the entire Next.js website. Each is a later increment.
 
 ## Status vs. the blueprint's minimum release criteria (model portion)
