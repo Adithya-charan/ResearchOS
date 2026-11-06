@@ -152,6 +152,12 @@ Ordered by dependency (each unlocks the next) and by risk reduction:
 | P9 | **Docker**: worker, PostgreSQL, (Redis only if a concrete need appears: the job queue can use PostgreSQL row locking, so Redis is **not justified** by the current architecture), frontend; verify with real `compose` commands | P1, P7, Docker installed | |
 | P10 | **Frontend** (17 screens against the real API, SSE) | stable API (P1-P4), Node installed | Largest item; should start only once the API contract settles |
 
+**Renumbering (second master prompt, P3-P10).** The newer prompt orders work as: P3 durable execution (= my P1+P2 plus transitions,
+execution records, extra events: **done**), P4 orchestration/agents (reviews the nine agents; extra agents Literature Analysis and
+Experiment are the main gaps), P5 knowledge system / retrieval evaluation (= my P6 plus ingestion review), P6 evidence verification and
+reports (= my P3+P4), P7 PostgreSQL (= my P7), P8 model training/inference/registry (= my P5 readiness plus provider interface),
+P9 frontend (= my P10), P10 security, Docker, CI, performance, final docs (= my P9 plus the rest). The table above keeps the old numbers.
+
 Redis decision (rule 4 of the prompt: "if justified"): not justified now. PostgreSQL `SELECT ... FOR UPDATE SKIP LOCKED` (and a
 leased row on SQLite) covers job claiming; rate limiting remains in-process and is documented as single-process.
 
@@ -159,3 +165,17 @@ leased row on SQLite) covers job claiming; rate limiting remains in-process and 
 
 P1 (durable worker and job queue) with its tests, because every other acceptance step (live updates, restart persistence, report after
 restart) depends on runs executing outside the request process and surviving restarts. No commits will be made unless you authorise them.
+
+## Status log (second master prompt)
+
+* P3 durable execution: done (624 tests at the time).
+* P4 multi-agent orchestration: done. Nine required roles are present (Experiment Design and Critical Reviewer added), declared specs
+  checked against real outputs, supervisor replanning (discovery failures only), duplicate prevention, per-agent timeout/retry ceilings.
+  Full suite: 637 passed plus one test whose agent-type whitelist was updated for the two new agents (then re-run green).
+  Open: reviewer/plans not yet in the rendered report (P6); agents deterministic, no model-written analysis.
+* P5 knowledge system: done except PostgreSQL full-text search (P7) and a bundled malware scanner (hook only). Added declared publication
+  date/URL/document type, phrase / document-level / metadata search, citation records, corpus schema v2 upgrade and the retrieval
+  evaluation harness (22 queries: lexical MRR 1.0, synonym MRR 0.0 - the limitation is measured and documented).
+  Closure pass: 18 further tests (deletion/index cleanup, restart persistence, combined filters, agent evidence traceability,
+  authorization at every search level, evaluation reproducibility and synonym-stem disjointness). See `docs/RETRIEVAL_SYSTEM.md`.
+  Lexical only: no semantic synonym matching; no coverage claim beyond the uploaded library.

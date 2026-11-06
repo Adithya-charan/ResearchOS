@@ -480,6 +480,116 @@ SQLite database (runs, tasks, events, approvals, memory) has its own tree, writt
 Limits: this is SQLite only (PostgreSQL for the engine store is P7); `alembic` is now needed wherever the engine runs, not just
 the API, so it was added to the core dependencies.
 
+## Master prompt v2, P3 - durable research execution (completes P1/P2 against the new checklist)
+
+The second master prompt renumbered the work (its P3 = durable execution). Most of it already existed from P1/P2; this increment
+closed the remaining gaps and mapped each requirement to evidence:
+
+| Requirement | Where / test |
+|---|---|
+| Lifecycle `queued -> planning -> running -> reviewing -> completed` + paused/failed/cancelled | `api/jobs.lifecycle`, `test_lifecycle_phases_are_derived_from_persisted_state` |
+| **Validated state transitions** (new) | `agent_engine/state/transitions.py`, enforced by `Store.update_run/update_task`; `test_p3_execution.py` |
+| Persistent queue, atomic claim, ownership, lease, heartbeat | `api/jobs.py`; `test_a_queued_job_is_claimed_by_exactly_one...`, heartbeat test |
+| Crash recovery, retries, exponential backoff | worker-died test, `test_requeue_uses_exponential_backoff...` |
+| Timeouts | per-task `task_timeout_s` and run `max_runtime_s` (engine tests); job lease timeout |
+| Graceful shutdown, pause/resume, cancellation | `test_stopping_a_worker_hands_its_job_back...`, `test_cancel_pause_and_resume_work_through_the_queue` |
+| Task dependencies, scheduling, input/output persistence | engine `TaskGraph`, `tasks` table (Phase 6) |
+| **Execution records** per attempt: status, duration, process CPU (new) | `task_executions` (engine migration 0002), `GET /runs/{id}/executions` |
+| **Task logs** | the events carrying the task id, returned by `GET /runs/{id}/tasks/{task_id}` as `logs` |
+| Events: planning started, agent started (new), task started/completed/failed, approval requested, paused/resumed, completed/failed | `test_a_run_persists_its_lifecycle_events_in_order` |
+| SSE ids, replay, Last-Event-ID, heartbeat, authorization, disconnect | `tests/test_api_sse.py` |
+| Persistence after restart | `test_end_to_end_workflow_survives_an_application_restart` |
+
+Limits, stated plainly: `cpu_process_s` is the *process-wide* CPU delta while the task ran, so it over-counts when tasks overlap; there
+is no per-task memory measurement (no portable stdlib way on Windows). Job-row transitions are guarded by conditional `UPDATE ... WHERE
+status=...` statements and the table in `transitions.JOB` is checked by a test but not applied as a separate runtime check. Task
+"logs" are the persisted events, not captured stdout.
+
+Store-level tests that jumped `pending -> succeeded` or `pending -> completed` now go through `running` first (setup only; assertions unchanged).
+
+## Master prompt v2, P4 - multi-agent orchestration (`agent_engine/agents/`, `docs/AGENT_SYSTEM.md`)
+
+Existing: supervisor, discovery, critic, literature analysis, gap, hypothesis, verifier, synthesis and an approval-gated experiment
+*runner*. Added in this increment:
+
+* **Experiment Design agent** (`experiment_design`): per hypothesis a plan with independent/dependent variables, datasets, baselines,
+  metrics, falsification criteria and reproducibility rules. Only items quoted from accepted documents are named (each with a citation);
+  anything else goes to `needs_human_input`. Plans carry no results.
+* **Critical Reviewer agent** (`reviewer`): untested assumptions, hypotheses without evidence, insufficient/single-source evidence,
+  possible contradictions between documents, plan methodology holes (no metric, baseline, dataset, dependent variable). Severity-graded;
+  never approves.
+* **Agent specs** (`agents/specs.py`, `GET /agents`): role, responsibilities, input/output keys, timeout/retry ceilings, evaluation criteria.
+* **Supervisor replanning** after a permanently failed discovery task (bounded by `max_replans`); **duplicate prevention** in the planner;
+  per-agent timeout/retry ceilings in the scheduler.
+* Workflow: critic now also proposes `experiment_design` and `reviewer`; synthesis depends on both.
+
+Tests (`tests/test_p4_agents.py`, 14): nine roles present with complete specs; real inputs/outputs match the declared contracts;
+dependency ordering by timestamps; review/plans precede synthesis; plans have no results and valid citations; reviewer severities;
+shared-context consistency; dependency isolation; duplicate prevention; per-agent timeout/retry; replanning succeeds, is bounded and can
+be disabled; `/agents` endpoint.
+
+Limits: replanning covers only discovery failures and only broadens the query; the reviewer is a fixed checklist; the report builder does
+not yet render plans or the review (the 16-section report is P6); agents remain deterministic (no model-written analysis).
+
+## Master prompt v2, P5 - literature ingestion and knowledge system (`research/corpus/`, `research/bm25/`, `research/retrieval_eval.py`)
+
+Most of the ingestion pipeline existed from Phase 7 (upload/type/size validation, isolated extraction subprocess, hashing and
+deduplication, text normalisation, section extraction, passage chunking, indexing, a malware-scanner hook). This increment closed the
+gaps against the new checklist:
+
+| P5 item | State |
+|---|---|
+| Supported formats PDF, DOCX, TXT, Markdown, HTML | existing (Phase 7) |
+| Upload / type / size validation, zip-bomb guard, isolated extraction | existing; malware scanning is a **hook** (`Scanner`), reported as `not configured` unless one is plugged in (no ClamAV bundled) |
+| Metadata: id, title, authors, DOI, source, hash, ingestion/extraction status, timestamp | existing |
+| **Metadata: publication date, URL, document type** | **new**: declared by the uploader, validated (real calendar date, http(s) URL, fixed type list), `NULL` when not declared; never guessed from the file |
+| Corpus schema change | `corpus.db` schema v2 with an in-place, idempotent upgrade of older libraries (existing rows keep NULL); a newer-than-supported library is refused |
+| **Phrase search** | **new**: `"double quotes"` require the exact contiguous words (no stemming/stopword removal inside the phrase) |
+| **Document-level retrieval** | **new**: each document once, ranked by its best passage (an aggregation of BM25, not a separate model) |
+| **Metadata search** | **new**: title/authors/DOI(exact)/source/filename/type/date; stemmed with stopwords dropped |
+| **Filters** | year range (existing) plus declared document type and author substring; undeclared values never match |
+| **Citation record** | **new** `CorpusHit.citation()`: document id, chunk id, title, excerpt, page, section, score, URL, DOI, source; returned by `GET /projects/{id}/search` (`level=chunk|document|metadata`) |
+| PostgreSQL full-text search | **deferred to P7** (needs a PostgreSQL instance); BM25 stays in-process |
+| **Retrieval evaluation** | **new**: `scripts/eval_retrieval.py`, `datasets/retrieval_eval/` (12 invented CC0 documents, 1 byte-identical copy, labelled queries) |
+
+### Measured result (22 queries, this tiny invented set - a sanity check, not evidence about real literature)
+
+| Kind | n | MRR | P@1 | R@3 | R@5 |
+|---|---|---|---|---|---|
+| lexical | 12 | 1.00 | 1.00 | 1.00 | 1.00 |
+| topic (3 relevant docs each) | 3 | 1.00 | 1.00 | 1.00 | 1.00 |
+| phrase | 2 | 1.00 | 1.00 | 1.00 | 1.00 |
+| filtered | 2 | 1.00 | 1.00 | 1.00 | 1.00 |
+| **synonym (no shared vocabulary)** | 3 | **0.00** | 0.00 | 0.00 | 0.00 |
+| all | 22 | 0.86 | 0.86 | 0.86 | 0.86 |
+
+Also checked: deduplication (13 files offered, 12 stored, the copy recognised and pointed at the original), declared metadata equals
+stored metadata for all 12 documents, and all returned citations (60) resolve to a stored passage that still verifies against its source file.
+The perfect lexical scores reflect that the queries were written to share words with their documents; the synonym row is the honest
+counterweight: lexical retrieval cannot bridge vocabulary and no pretrained embeddings are allowed here.
+
+### Limitations of lexical retrieval (also in the evaluation report)
+
+* matches words, not meaning (synonyms, paraphrase, abbreviations); English-only light stemming;
+* IDF depends on the indexed corpus, so scores are not comparable across libraries;
+* phrase search is exact; document-level ranking is the best passage's score;
+* no OCR (scanned PDFs are reported, not indexed); malware scanning only through a configured scanner.
+
+### P5 closure verification
+
+Added `tests/test_p5_closure.py` (18 tests): duplicate handling by content, deletion with index and file cleanup across all search
+kinds, identical results after reopening the library, combined filters, chunk citation fields, evaluation reproducibility, mechanical
+check that synonym queries share no stems with their targets, per-category metrics, agent integration with resolvable evidence, and
+401/404 authorization on every search level. Two initial failures were test errors (4-d.p. rounding of 1/3; the evaluation documents
+state no limitations, so Gap/Hypothesis legitimately cite nothing there) - fixed in the tests by a tolerance and by adding a document with
+a stated limitation; no eval query changed. The first full run (680 passed, 1 failed, pytest exit 1) exposed a real race: six threads
+opening one engine DB could hit `database is locked` on `PRAGMA journal_mode = WAL`, outside the migration retry. `Store.__init__` now
+retries that pragma (bounded). Final full run: **681 passed, 1 warning, pytest exit code 0 (335 s)**. Full results and limits: `docs/RETRIEVAL_SYSTEM.md`.
+
+Tests: `tests/test_p5_knowledge.py` (25): metric formulas against hand computations, the harness findings, a deliberately wrong label
+being scored as a miss, phrase adjacency, document-level and metadata search, filters, citation fields, metadata validation (bad date,
+URL, type), the v1 -> v2 corpus upgrade and the newer-version refusal, and the HTTP surface.
+
 ## Status vs. the blueprint's minimum release criteria (model portion)
 
 | Criterion | State |
