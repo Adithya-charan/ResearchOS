@@ -1,0 +1,40 @@
+# Local / single-host deployment of the RESEARCHOS API.   docker compose up --build
+#
+# What this does NOT include, on purpose:
+#  * PostgreSQL / Redis - the application stores state in SQLite and limits rates in-process today, so running them would be theatre.
+#    They arrive with Alembic migrations in a later increment.
+#  * Access to the Docker socket - mounting it would hand the API (and any bug in it) root on the host. As a result experiments
+#    cannot use the Docker sandbox from inside this container and are refused (HTTP 503) unless you explicitly set
+#    RESEARCHOS_ALLOW_WEAK_SANDBOX=true, which is NON-isolating and for development only.
+#  * TLS - put a reverse proxy in front, set RESEARCHOS_COOKIE_SECURE=true and RESEARCHOS_TRUSTED_PROXIES to the proxy address.
+services:
+  api:
+    build: .
+    image: researchos-api:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${RESEARCHOS_PORT:-8000}:8000"   # loopback only; expose through a TLS proxy, not directly
+    environment:
+      RESEARCHOS_ALLOWED_ORIGINS: ${RESEARCHOS_ALLOWED_ORIGINS:-http://localhost:3000}
+      RESEARCHOS_COOKIE_SECURE: ${RESEARCHOS_COOKIE_SECURE:-false}
+      RESEARCHOS_TRUSTED_PROXIES: ${RESEARCHOS_TRUSTED_PROXIES:-127.0.0.1}
+      RESEARCHOS_TRAINING_ENABLED: ${RESEARCHOS_TRAINING_ENABLED:-false}
+      RESEARCHOS_ALLOW_WEAK_SANDBOX: ${RESEARCHOS_ALLOW_WEAK_SANDBOX:-false}
+      RESEARCHOS_DEMO_CORPUS: ${RESEARCHOS_DEMO_CORPUS:-false}
+      RESEARCHOS_INFERENCE_DEVICE: cpu
+    volumes:
+      - researchos-data:/data
+      - ${RESEARCHOS_MODELS_PATH:-./artifacts/checkpoints}:/models:ro   # operator checkpoints, read-only
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    mem_limit: ${RESEARCHOS_MEM_LIMIT:-4g}
+    pids_limit: 512
+
+volumes:
+  researchos-data:
