@@ -77,7 +77,7 @@ Design rules that the code enforces:
   A clearly-labelled non-isolating subprocess fallback exists for development and must not be used for untrusted code.
 * No OCR (scanned pages are reported and skipped), no CSV ingestion, malware scanning is a hook only (reported as
   "not configured" unless you supply a scanner).
-* SQLite and in-process rate limiting only: one API process. No PostgreSQL / Redis / Alembic migrations yet.
+* SQLite and in-process rate limiting only: one API process. Alembic migrations exist (SQLite-tested); no PostgreSQL / Redis support yet.
 * The website is **not built**; the API is complete enough to drive one.
 
 Per-phase measurements and known limits are recorded in [docs/PHASE_REPORTS.md](docs/PHASE_REPORTS.md).
@@ -182,6 +182,7 @@ All settings are environment variables prefixed `RESEARCHOS_` (see [`api/config.
 | `RESEARCHOS_DATA_DIR` | `artifacts/api/data` | per-project libraries, experiment runs, training jobs |
 | `RESEARCHOS_ALLOWED_ORIGINS` | `localhost:3000` | browser origins allowed to make unsafe requests |
 | `RESEARCHOS_COOKIE_SECURE` | `false` | set `true` behind TLS |
+| `RESEARCHOS_AUTO_MIGRATE` | `true` | apply Alembic migrations at startup; `false` = refuse to start unless the schema is at head |
 | `RESEARCHOS_TRAINING_ENABLED` | `false` | let users start training jobs (uses host CPU/GPU) |
 | `RESEARCHOS_MODELS_DIR` | `artifacts/checkpoints` | operator checkpoints shown in the model registry |
 | `RESEARCHOS_INFERENCE_DEVICE` | `cpu` | device for local generation |
@@ -217,9 +218,9 @@ path traversal, tamper detection, approval-bound execution). GitHub Actions runs
 ## Roadmap
 
 Done: model pipeline, agent engine, corpus, research workflow, experiments, the API (auth, projects, runs, corpus,
-approvals, experiments, reports, models, SSE) and Docker packaging.
+approvals, experiments, reports, models, SSE), Docker packaging and Alembic migrations.
 
-Next: Alembic migrations, PostgreSQL + Redis, the Next.js website, OCR and CSV ingestion,
+Next: PostgreSQL + Redis, the Next.js website, OCR and CSV ingestion,
 wiring the local model into agent text with budgets, single-task retry, SymPy / Z3 checks, a real licensed training corpus
 (your decision), gVisor / Firecracker evaluation.
 
