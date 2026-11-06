@@ -183,6 +183,7 @@ All settings are environment variables prefixed `RESEARCHOS_` (see [`api/config.
 | `RESEARCHOS_ALLOWED_ORIGINS` | `localhost:3000` | browser origins allowed to make unsafe requests |
 | `RESEARCHOS_COOKIE_SECURE` | `false` | set `true` behind TLS |
 | `RESEARCHOS_AUTO_MIGRATE` | `true` | apply Alembic migrations at startup; `false` = refuse to start unless the schema is at head |
+| `RESEARCHOS_EMBEDDED_WORKER` | `true` | run a research worker thread inside the API process; `false` = jobs wait for `python scripts/run_worker.py` (one or more separate processes) |
 | `RESEARCHOS_TRAINING_ENABLED` | `false` | let users start training jobs (uses host CPU/GPU) |
 | `RESEARCHOS_MODELS_DIR` | `artifacts/checkpoints` | operator checkpoints shown in the model registry |
 | `RESEARCHOS_INFERENCE_DEVICE` | `cpu` | device for local generation |

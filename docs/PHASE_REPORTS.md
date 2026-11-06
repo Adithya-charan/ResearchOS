@@ -435,6 +435,51 @@ local Transformer is **not** yet wired into the agents' text (only optional budg
 container deployments;
 the entire Next.js website. Each is a later increment.
 
+## Master prompt P1 - durable research worker and job queue (`api/jobs.py`, `scripts/run_worker.py`)
+
+Research runs no longer execute in a thread owned by a request. Starting a run inserts a row in `research_jobs`
+(migration `0002`); a **worker** claims it, runs the agent engine, and writes the outcome back.
+
+* **Claiming** is one conditional `UPDATE ... WHERE status='queued' AND available_at <= now` (portable to SQLite and
+  PostgreSQL; no `SKIP LOCKED`). Tested with 8 racing threads: exactly one wins.
+* **Leases and heartbeats.** A claimed job holds a lease (`job_lease_s` setting, default 30s) renewed every lease/3. A worker
+  that stops heartbeating loses the job: the reaper re-queues it with exponential backoff (`job_backoff_s * 2^(n-1)`, capped at 60s)
+  until `job_max_attempts`, then fails the job and marks the engine run failed (`stop_reason=worker_lost`). The engine's own
+  `recover` re-queues tasks that were mid-flight, so finished work is not repeated.
+* **Graceful shutdown** hands the job back without spending an attempt; a worker that notices it lost its lease abandons the run
+  and does not touch the new owner's row.
+* **Lifecycle** shown by the API/SSE (`state.lifecycle`): created, queued, planning, running, reviewing, paused, completed,
+  failed, cancelled - derived from the job row, the engine run and its tasks, not stored separately.
+* **Two ways to run workers:** embedded thread in the API process (default, `RESEARCHOS_EMBEDDED_WORKER`), or separate processes
+  with `scripts/run_worker.py`. A job queued before a restart is picked up after it.
+* Per-user active-run quota counts queued jobs. Missing documents fail the job at once (no retries).
+* **Redis is not used**: PostgreSQL/SQLite row updates are sufficient at this scale; adding it would add a service without a benefit.
+
+Also fixed: in-memory SQLite URLs now use a private temporary file (a single shared connection let a worker's commit land inside
+a request's transaction); adoption of pre-migration databases now stamps `head` when the schema already matches.
+
+Limits: the worker runs the engine in-process per job (no per-job OS isolation or memory cap); the separate-process worker is
+covered by the same queue tests but I have not run `scripts/run_worker.py` as a live second process; PostgreSQL is untested.
+
+## Master prompt P2 - engine database under Alembic (`agent_engine/state/migrate.py`, `agent_engine/state/migrations/`)
+
+Both databases now have one strategy: Alembic. The API keeps its SQLAlchemy migration tree (`api/migrations`); the agent engine's
+SQLite database (runs, tasks, events, approvals, memory) has its own tree, written as plain SQL so the engine keeps its raw
+`sqlite3` store.
+
+* `Store(path)` runs `migrate.upgrade(path)` for file databases; `Store(":memory:")` applies the same migration SQL directly, so
+  tests exercise the real schema. The hand-written `SCHEMA` constant is gone.
+* A database created before migrations is **adopted** (stamped `0001`) only if its tables, columns and indexes match the frozen
+  baseline exactly; otherwise `SchemaMismatch` is raised and the file is not touched. A database at a revision this code does not
+  know (written by newer code) is refused too.
+* Safe concurrent start: threads are serialised in-process, other processes race through SQLite locking with a bounded retry;
+  tested with 6 threads and 4 separate processes.
+* Tests (`tests/test_engine_migrations.py`): new database, reopen keeps data, file/memory schemas identical, legacy adoption,
+  legacy mismatch refused and unchanged, newer-than-code refused, downgrade/upgrade round trip, concurrent start.
+
+Limits: this is SQLite only (PostgreSQL for the engine store is P7); `alembic` is now needed wherever the engine runs, not just
+the API, so it was added to the core dependencies.
+
 ## Status vs. the blueprint's minimum release criteria (model portion)
 
 | Criterion | State |
