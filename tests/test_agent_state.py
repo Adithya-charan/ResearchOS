@@ -85,6 +85,7 @@ def test_state_survives_reopening_a_file_database(tmp_path):
     s1 = Store(path)
     pid, rid = _project_run(s1)
     s1.add_tasks(rid, [{"id": "task_1", "agent_type": "x", "title": "T", "input": {"a": [1, 2]}, "depends_on": []}])
+    s1.update_task("task_1", status="running")
     s1.update_task("task_1", status="succeeded", output={"ok": True})
     s1.add_event(rid, "something", {"n": 1}, "task_1")
     s1.memory_put(pid, "k", {"v": 1}, rid, "task_1")
@@ -145,6 +146,7 @@ def test_updates_reject_unknown_columns():
         store.update_task("t1", agent_type="hacked")
     with pytest.raises(ValueError):
         store.update_run(rid, id="hacked")
+    store.update_task("t1", status="running")
     store.update_task("t1", output={"x": 1}, status="succeeded")  # 'output' is an alias for the stored column
     assert store.get_task("t1")["output"] == {"x": 1}
 
@@ -462,6 +464,7 @@ def test_event_stream_replays_history_then_follows_live_and_finishes():
         bus.publish(rid, "live1")
         await asyncio.sleep(0.03)
         bus.publish(rid, "live2")
+        store.update_run(rid, status="running")
         store.update_run(rid, status="completed")
         await asyncio.wait_for(consumer, 2)
         return seen

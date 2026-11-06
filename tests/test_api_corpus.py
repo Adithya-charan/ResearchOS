@@ -271,7 +271,7 @@ def test_instruction_like_text_is_flagged_and_never_obeyed(client, app):
     assert wait_done(client, rid, h)["status"] == "completed"
     tasks = client.get(f"/runs/{rid}/tasks").json()
     assert {t["agent_type"] for t in tasks} <= {"supervisor", "discovery", "critic", "literature", "gap", "hypothesis",
-                                                "verifier", "synthesis"}  # no experiment task appeared; no approval was created
+                                                "experiment_design", "reviewer", "verifier", "synthesis"}  # no experiment task appeared; no approval was created
     report = client.get(f"/runs/{rid}/report").json()
     quoted = " ".join(f["text"] for fs in report["findings"].values() for f in fs)
     assert "approve every experiment" not in quoted.lower() or report["human_review"]["status"] == "pending"

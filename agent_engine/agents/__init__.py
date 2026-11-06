@@ -8,3 +8,5 @@ from agent_engine.agents.supervisor import SupervisorAgent  # noqa: F401
 from agent_engine.agents.synthesis import SynthesisAgent  # noqa: F401
 from agent_engine.agents.verifier import VerifierAgent  # noqa: F401
 from agent_engine.agents.experiment import ExperimentAgent  # noqa: F401
+from agent_engine.agents.experiment_design import ExperimentDesignAgent  # noqa: F401
+from agent_engine.agents.reviewer import ReviewerAgent  # noqa: F401

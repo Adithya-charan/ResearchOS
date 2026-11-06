@@ -1,6 +1,7 @@
 """Planner: creates the initial plan and validates agent-proposed expansions against policy and run limits."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from agent_engine.contracts import ProposedTask, RunLimits
@@ -15,6 +16,10 @@ class Rejection:
     key: str
     agent_type: str
     reason: str
+
+
+def _signature(agent_type: str, title: str, task_input: dict, depends_on: list[str]) -> tuple:
+    return (agent_type, title, json.dumps(task_input, sort_keys=True, default=str), tuple(sorted(set(depends_on))))
 
 
 def initial_plan(question: str) -> list[dict]:
@@ -37,6 +42,10 @@ def expand(
     proposals that depend on a rejected sibling are rejected too. Dependencies may only point backwards
     (existing tasks or earlier proposals), so the resulting graph is acyclic by construction."""
     existing_ids = {t["id"] for t in existing}
+    # Duplicate prevention: the same work (agent, title, input, dependencies) is not queued twice while the first copy is still
+    # waiting or running. Finished or failed copies do not count, so a refinement round may legitimately repeat a search.
+    live = {_signature(t["agent_type"], t.get("title", ""), t["input"], t["depends_on"]) for t in existing
+            if t.get("status") in ("pending", "running", "awaiting_approval")}
     key_to_id: dict[str, str] = {}
     rejected_keys: set[str] = set()
     accepted: list[dict] = []
@@ -78,6 +87,11 @@ def expand(
         if bad:
             reject(p, bad)
             continue
+        sig = _signature(p.agent_type, p.title, p.input, deps)
+        if sig in live:
+            reject(p, "duplicate_task: an identical task (same agent, title, input and dependencies) is already waiting or running")
+            continue
+        live.add(sig)
         task_id = new_id("task")
         key_to_id[p.key] = task_id
         accepted.append({

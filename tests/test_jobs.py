@@ -98,6 +98,7 @@ def fake_runtime(app, behaviour):
 
 
 async def completes(rt, eid):
+    rt.store.update_run(eid, status="running")
     await asyncio.sleep(0.05)
     rt.store.update_run(eid, status="completed")
 

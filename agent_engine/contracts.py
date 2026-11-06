@@ -89,6 +89,7 @@ class RunLimits(_Strict):
     max_retries: int = Field(default=2, ge=0)  # per task, after the first attempt
     task_timeout_s: float = Field(default=60.0, gt=0)
     max_concurrency: int = Field(default=4, gt=0)
+    max_replans: int = Field(default=1, ge=0)  # times the Supervisor may be asked to replan after a failed discovery task
     retry_backoff_s: float = Field(default=0.5, ge=0)  # attempt n waits backoff * 2**(n-1)
 
 

@@ -17,7 +17,7 @@ from api.corpus_service import CorpusManager, Scanner
 from api.experiments_service import ExperimentService
 from api.jobs import JobQueue, Worker
 from api.model_service import InferenceService, ModelRegistry, TrainingService
-from api.routes import approvals, auth, documents, experiments, models, projects, reports, runs, streams
+from api.routes import agents, approvals, auth, documents, experiments, models, projects, reports, runs, streams
 from api.runtime import EngineRuntime
 from api.security import RateLimiter
 from api.sse import StreamGate
@@ -95,6 +95,6 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
     def health():
         return {"status": "ok", "service": "researchos-api", "workflow": settings.workflow}
 
-    for module in (auth, projects, documents, runs, approvals, experiments, reports, models, streams):
+    for module in (auth, projects, documents, runs, approvals, experiments, reports, models, streams, agents):
         app.include_router(module.router)
     return app

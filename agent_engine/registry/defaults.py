@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from agent_engine.agents import (CriticAgent, ExperimentAgent, DiscoveryAgent, GapAnalystAgent, HypothesisAgent, LiteratureAgent,
+from agent_engine.agents import (CriticAgent, ExperimentAgent, ExperimentDesignAgent, ReviewerAgent, DiscoveryAgent, GapAnalystAgent, HypothesisAgent, LiteratureAgent,
                                  SupervisorAgent, SynthesisAgent, VerifierAgent)
 from agent_engine.model_gateway import ModelGateway, TextBackend
 from agent_engine.policies.policy import PolicyEngine, default_policy, full_policy
@@ -21,7 +21,8 @@ def default_registry(discovery_k: int = 8, workflow: str = "basic") -> AgentRegi
     reg = AgentRegistry()
     agents = [SupervisorAgent(discovery_k, workflow == "full"), DiscoveryAgent(), CriticAgent()]
     if workflow == "full":
-        agents += [LiteratureAgent(), GapAnalystAgent(), HypothesisAgent(), VerifierAgent(), SynthesisAgent()]
+        agents += [LiteratureAgent(), GapAnalystAgent(), HypothesisAgent(), ExperimentDesignAgent(), ReviewerAgent(),
+                   VerifierAgent(), SynthesisAgent()]
     for agent in agents:
         reg.register(agent)
     return reg
@@ -41,7 +42,7 @@ def build_engine(
     **engine_kwargs,
 ) -> ResearchEngine:
     """Supervisor + Discovery + Critic over a BM25 index (workflow="basic"), or the full research workflow
-    (workflow="full": + literature, gap, hypothesis, verifier, synthesis). `experiments=(sandbox, root_dir)` also registers
+    (workflow="full": + literature, gap, hypothesis, experiment design, reviewer, verifier, synthesis). `experiments=(sandbox, root_dir)` also registers
     the approval-gated experiment agent. `verifier` re-checks a passage against its
     original file (e.g. Corpus.verify_passage)."""
     if workflow not in ("basic", "full"):

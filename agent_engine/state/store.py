@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+import time
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_engine.state import migrate
+from agent_engine.state.transitions import check_run, check_task
 
 _RUN_COLUMNS = {
     "status", "control", "started_at", "completed_at", "stop_reason", "model_tokens_used", "elapsed_s",
@@ -54,7 +56,14 @@ class Store:
             self._conn.execute("PRAGMA foreign_keys = ON")
             self._conn.execute("PRAGMA busy_timeout = 5000")
             if self.path != ":memory:":
-                self._conn.execute("PRAGMA journal_mode = WAL")
+                for attempt in range(12):  # switching the journal mode needs a lock busy_timeout does not always cover
+                    try:
+                        self._conn.execute("PRAGMA journal_mode = WAL")
+                        break
+                    except sqlite3.OperationalError as exc:
+                        if attempt == 11 or "locked" not in str(exc).lower():
+                            raise
+                        time.sleep(0.05 * (attempt + 1))
         if self.path == ":memory:":
             migrate.apply_in_memory(self._conn)
         else:
@@ -139,6 +148,8 @@ class Store:
             raise ValueError(f"cannot update run columns {sorted(bad)}")
         if not fields:
             return
+        if "status" in fields:
+            check_run(self.get_run(run_id)["status"], fields["status"])
         sets = ", ".join(f"{k}=?" for k in fields)
         self._run(f"UPDATE runs SET {sets} WHERE id=?", (*fields.values(), run_id))
 
@@ -200,12 +211,37 @@ class Store:
         bad = set(cols) - _TASK_COLUMNS
         if bad:
             raise ValueError(f"cannot update task columns {sorted(bad)}")
+        if "status" in cols:
+            check_task(self.get_task(task_id)["status"], cols["status"])
         sets = ", ".join(f"{k}=?" for k in cols)
         self._run(f"UPDATE tasks SET {sets} WHERE id=?", (*cols.values(), task_id))
 
     def task_counts(self, run_id: str) -> dict[str, int]:
         rows = self._all("SELECT status, COUNT(*) n FROM tasks WHERE run_id=? GROUP BY status", (run_id,))
         return {r["status"]: r["n"] for r in rows}
+
+    # ------------------------------------------------------------------ execution records
+    def begin_execution(self, run_id: str, task_id: str, agent_type: str, attempt: int) -> int:
+        cur = self._run("INSERT INTO task_executions (run_id, task_id, agent_type, attempt, started_at) VALUES (?,?,?,?,?)",
+                        (run_id, task_id, agent_type, attempt, utcnow()))
+        return int(cur.lastrowid)
+
+    def finish_execution(self, exec_id: int, status: str, duration_s: float, cpu_process_s: float, error: str | None) -> None:
+        self._run("UPDATE task_executions SET status=?, finished_at=?, duration_s=?, cpu_process_s=?, error=? "
+                  "WHERE id=? AND finished_at IS NULL", (status, utcnow(), duration_s, cpu_process_s, error, exec_id))
+
+    def abandon_open_executions(self, run_id: str) -> int:
+        """Executions still open when the run is recovered belong to a worker that died: close them honestly."""
+        cur = self._run("UPDATE task_executions SET status='abandoned', finished_at=?, error='worker lost before this attempt finished' "
+                        "WHERE run_id=? AND finished_at IS NULL", (utcnow(), run_id))
+        return cur.rowcount
+
+    def list_executions(self, run_id: str, task_id: str | None = None) -> list[dict]:
+        if task_id:
+            rows = self._all("SELECT * FROM task_executions WHERE run_id=? AND task_id=? ORDER BY id", (run_id, task_id))
+        else:
+            rows = self._all("SELECT * FROM task_executions WHERE run_id=? ORDER BY id", (run_id,))
+        return [dict(r) for r in rows]
 
     # ------------------------------------------------------------------ events
     def add_event(self, run_id: str, event_type: str, payload: dict | None = None, task_id: str | None = None) -> int:

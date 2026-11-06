@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from agent_engine.agents.base import Agent
+from agent_engine.agents.specs import spec_for
 from agent_engine.policies.policy import PolicyEngine
 
 
@@ -29,8 +30,10 @@ class AgentRegistry:
         out = []
         for t in self.types():
             p = policy.policy_for(t)
+            spec = spec_for(t)
             out.append({
                 "agent_type": t,
+                **({"spec": spec.as_dict()} if spec else {}),
                 "description": self._agents[t].description,
                 "tools": sorted(p.allowed_tools),
                 "may_propose": sorted(p.may_propose),

@@ -92,10 +92,15 @@ class CriticAgent(Agent):
                              depends_on=[me, "literature"], input=base),
                 ProposedTask(key="hypothesis", agent_type="hypothesis", title="Draft falsifiable hypotheses",
                              depends_on=["gap", "literature"], input=base),
+                ProposedTask(key="experiment_design", agent_type="experiment_design", title="Design experiment plans",
+                             depends_on=["hypothesis", "literature", "gap"], input=base),
+                ProposedTask(key="reviewer", agent_type="reviewer", title="Critically review the analysis and plans",
+                             depends_on=[me, "literature", "gap", "hypothesis", "experiment_design"], input=base),
                 ProposedTask(key="verifier", agent_type="verifier", title="Verify claims and citations",
                              depends_on=[me, "literature", "gap", "hypothesis"], input=base),
                 ProposedTask(key="synthesis", agent_type="synthesis", title="Assemble the research report",
-                             depends_on=[me, "literature", "gap", "hypothesis", "verifier"], input=base),
+                             depends_on=[me, "literature", "gap", "hypothesis", "experiment_design", "reviewer", "verifier"],
+                             input=base),
             ]
         accepted_refs = [EvidenceReference(document_id=a["document_id"], page_number=a["page_number"], passage_id=a["passage_id"])
                          for a in accepted]

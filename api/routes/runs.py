@@ -145,7 +145,18 @@ def read_task(run_id: str, task_id: str, request: Request, auth: CurrentAuth, db
         raise HTTPException(404, "task not found") from None
     if t["run_id"] != r.engine_run_id:
         raise HTTPException(404, "task not found")  # a task of another run (or user) looks like a missing one
-    return _task_view(t, full=True)
+    store = request.app.state.runtime.store
+    view = _task_view(t, full=True)
+    view["executions"] = store.list_executions(r.engine_run_id, task_id)
+    view["logs"] = [e for e in store.list_events(r.engine_run_id, 0, 1000) if e["task_id"] == task_id]
+    return view
+
+
+@router.get("/runs/{run_id}/executions")
+def list_executions(run_id: str, request: Request, auth: CurrentAuth, db: DB):
+    """One record per task attempt: status, duration, process CPU seconds (process-wide, so approximate when tasks overlap)."""
+    r = owned_run(db, run_id, auth.user.id)
+    return request.app.state.runtime.store.list_executions(r.engine_run_id)
 
 
 @router.get("/runs/{run_id}/events")

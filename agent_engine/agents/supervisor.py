@@ -19,6 +19,8 @@ class SupervisorAgent(Agent):
         self.workflow = workflow  # True = after the evidence check, run analysis -> gaps -> hypotheses -> verification -> report
 
     async def run(self, ctx: AgentContext, task: TaskSpec) -> AgentOutput:
+        if task.input.get("replan_for"):
+            return self._replan(ctx, task)
         question = str(task.input.get("question") or ctx.question).strip()
         if not question:
             raise NonRetryableError("empty research question")
@@ -69,3 +71,31 @@ class SupervisorAgent(Agent):
             else:
                 out.uncertainties.append("Model note skipped (token budget exhausted or model unavailable).")
         return out
+
+    def _replan(self, ctx: AgentContext, task: TaskSpec) -> AgentOutput:
+        """A discovery task failed permanently. Try once with a broader query (the last term dropped) and re-run the
+        evidence review over what did succeed. If there is nothing new to try, say so instead of repeating the failed task."""
+        failed = task.input.get("failed_input") or {}
+        old_query = str(failed.get("query", "")).strip()
+        words = old_query.split()
+        new_query = " ".join(words[:-1]) if len(words) > 1 else ""
+        critic_input = task.input.get("critic_input")
+        if not new_query or new_query == old_query or critic_input is None:
+            return AgentOutput(
+                task_id=task.id, agent_type=self.agent_type, status="insufficient_evidence",
+                summary="No alternative plan is available for the failed search; nothing was added.",
+                uncertainties=[f"The failed search could not be broadened any further (error: {task.input.get('error', 'unknown')})."],
+                data={"replan": {"for": task.input["replan_for"], "action": "none"}})
+        proposals = [
+            ProposedTask(key="replan_search", agent_type="discovery", title=f"Replanned search: {new_query}",
+                         input={"query": new_query, "label": "replanned search", "k": int(failed.get("k", self.discovery_k))}),
+            ProposedTask(key="replan_critic", agent_type="critic", title="Re-check evidence after replanned search",
+                         depends_on=[*task.input.get("critic_depends_on", []), "replan_search"], input=dict(critic_input)),
+        ]
+        return AgentOutput(
+            task_id=task.id, agent_type=self.agent_type, status="ok",
+            summary=f"Replanned after a failed search: retrying with the broader query '{new_query}' and re-running the evidence review.",
+            findings=[f"Failed query: {old_query}", f"Replacement query: {new_query}"], proposed_tasks=proposals,
+            uncertainties=["A broader query (one term fewer) may return less precise passages than the failed one would have."],
+            data={"replan": {"for": task.input["replan_for"], "action": "broaden_query", "query": new_query}},
+        )

@@ -46,7 +46,7 @@ def default_policy(approval_required: Iterable[str] = ("experiment",)) -> Policy
     )
 
 
-WORKFLOW_AGENTS = frozenset({"literature", "gap", "hypothesis", "verifier", "synthesis"})
+WORKFLOW_AGENTS = frozenset({"literature", "gap", "hypothesis", "experiment_design", "reviewer", "verifier", "synthesis"})
 
 
 def full_policy(approval_required: Iterable[str] = ("experiment",), experiments: bool = False) -> PolicyEngine:
@@ -62,6 +62,8 @@ def full_policy(approval_required: Iterable[str] = ("experiment",), experiments:
             "literature": AgentPolicy(allowed_tools=frozenset({"corpus.document_passages"})),
             "gap": AgentPolicy(),
             "hypothesis": AgentPolicy(),
+            "experiment_design": AgentPolicy(),  # design only: no tools, no proposals, never runs anything
+            "reviewer": AgentPolicy(),
             "verifier": AgentPolicy(allowed_tools=frozenset({"corpus.get_passage", "corpus.verify_passage"})),
             "synthesis": AgentPolicy(),
             "experiment": AgentPolicy(),  # the sandbox is not a tool: the agent calls the runner directly after approval

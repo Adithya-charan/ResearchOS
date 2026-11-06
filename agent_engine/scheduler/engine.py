@@ -6,12 +6,13 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import ValidationError
 
 from agent_engine.agents.base import AgentContext
+from agent_engine.agents.specs import spec_for
 from agent_engine.contracts import (
     TERMINAL_RUN,
     AgentOutput,
@@ -31,7 +32,7 @@ from agent_engine.policies.policy import PolicyEngine
 from agent_engine.registry.registry import AgentRegistry
 from agent_engine.scheduler.retry import RetryPolicy
 from agent_engine.scheduler.summary import build_summary
-from agent_engine.state.store import Store, utcnow
+from agent_engine.state.store import Store, new_id, utcnow
 from agent_engine.tools.registry import ToolRegistry
 
 
@@ -49,6 +50,7 @@ class _RunCtl:
     abandon: bool = False  # simulate/handle process death: leave the database exactly as it is
     cancel_reason: str | None = None
     runtime_cut: bool = False  # a task was stopped because the run's runtime budget ran out
+    execs: dict = field(default_factory=dict)  # task id -> open execution record
 
     def elapsed(self) -> float:
         return self.elapsed_base + (self.clock() - self.t0)
@@ -145,6 +147,7 @@ class ResearchEngine:
         run = self.store.get_run(run_id)
         policy = RetryPolicy(RunLimits(**run["limits"]).max_retries, 0.0)
         recovered = []
+        self.store.abandon_open_executions(run_id)
         for t in self.store.list_tasks(run_id):
             if t["status"] != TaskStatus.RUNNING.value:
                 continue
@@ -308,6 +311,10 @@ class ResearchEngine:
     def _launch(self, rc: _RunCtl, row: dict, running: dict[str, asyncio.Task]) -> None:
         attempt = row["retry_count"] + 1
         self.store.update_task(row["id"], status="running", started_at=utcnow())
+        if row["agent_type"] == "supervisor" and row["iteration"] == 0 and attempt == 1:
+            self._event(rc.run_id, "planning_started", {"question": rc.question[:200]}, row["id"])
+        self._event(rc.run_id, "agent_started", {"agent_type": row["agent_type"], "attempt": attempt}, row["id"])
+        rc.execs[row["id"]] = self.store.begin_execution(rc.run_id, row["id"], row["agent_type"], attempt)
         self._event(rc.run_id, "task_started", {"agent_type": row["agent_type"], "attempt": attempt,
                                                 "iteration": row["iteration"]}, row["id"])
         running[row["id"]] = asyncio.create_task(self._run_task(rc, row, attempt))
@@ -345,7 +352,25 @@ class ResearchEngine:
         def emit(event_type: str, payload: dict | None = None) -> None:
             self._event(run_id, event_type, payload, task_id)
 
-        timeout = max(0.001, min(limits.task_timeout_s, limits.max_runtime_s - rc.elapsed()))
+        spec = spec_for(row["agent_type"])
+        task_cap = min(limits.task_timeout_s, spec.timeout_s) if spec and spec.timeout_s else limits.task_timeout_s
+        timeout = max(0.001, min(task_cap, limits.max_runtime_s - rc.elapsed()))
+        t0, cpu0 = time.monotonic(), time.process_time()
+        try:
+            await self._execute_task(rc, row, attempt, timeout, task_cap, emit)
+        finally:
+            self._close_execution(rc, task_id, time.monotonic() - t0, time.process_time() - cpu0)
+
+    def _close_execution(self, rc: _RunCtl, task_id: str, duration: float, cpu: float) -> None:
+        exec_id = rc.execs.pop(task_id, None)
+        if exec_id is None or rc.abandon:  # abandoned runs are closed by recover(), which knows the worker is gone
+            return
+        row = self.store.get_task(task_id)
+        outcome = {"succeeded": "succeeded", "pending": "retry", "failed": "failed", "cancelled": "cancelled"}.get(row["status"], row["status"])
+        self.store.finish_execution(exec_id, outcome, round(duration, 4), round(cpu, 4), row["error"] if outcome != "succeeded" else None)
+
+    async def _execute_task(self, rc: _RunCtl, row: dict, attempt: int, timeout: float, task_cap: float, emit) -> None:
+        run_id, limits, task_id = rc.run_id, rc.limits, row["id"]
         try:
             if row["agent_type"] not in self.registry:
                 raise NonRetryableError(f"no agent registered for type '{row['agent_type']}'")
@@ -366,7 +391,7 @@ class ResearchEngine:
                 emit("task_cancelled", {"reason": rc.cancel_reason})
             raise
         except asyncio.TimeoutError:
-            if timeout < limits.task_timeout_s:  # cut short by the run's own runtime limit, not the task's fault
+            if timeout < task_cap:  # cut short by the run's own runtime limit, not the task's fault
                 rc.runtime_cut = True
                 self.store.update_task(task_id, status="cancelled", completed_at=utcnow(), error="run runtime limit")
                 emit("task_cancelled", {"reason": "max_runtime_s"})
@@ -381,7 +406,9 @@ class ResearchEngine:
             self._on_success(rc, row, out)
 
     def _on_failure(self, rc: _RunCtl, row: dict, attempt: int, error: str, retryable: bool) -> None:
-        policy = RetryPolicy(rc.limits.max_retries, rc.limits.retry_backoff_s)
+        spec = spec_for(row["agent_type"])
+        ceiling = rc.limits.max_retries if spec is None or spec.max_retries is None else min(rc.limits.max_retries, spec.max_retries)
+        policy = RetryPolicy(ceiling, rc.limits.retry_backoff_s)
         if retryable and policy.can_retry(row["retry_count"]):
             delay = policy.delay_s(row["retry_count"])
             self.store.update_task(row["id"], status="pending", retry_count=row["retry_count"] + 1,
@@ -391,6 +418,29 @@ class ResearchEngine:
         else:
             self.store.update_task(row["id"], status="failed", completed_at=utcnow(), error=error)
             self._event(rc.run_id, "task_failed", {"attempt": attempt, "error": error, "retryable": retryable}, row["id"])
+            self._maybe_replan(rc, row, error)
+
+    REPLANNABLE = frozenset({"discovery"})
+
+    def _maybe_replan(self, rc: _RunCtl, row: dict, error: str) -> None:
+        """A search task failed for good: ask the Supervisor (once per allowed replan, within max_tasks) for an alternative plan."""
+        if row["agent_type"] not in self.REPLANNABLE or ROOT_AGENT not in self.registry:
+            return
+        tasks = self.store.list_tasks(rc.run_id)
+        used = sum(1 for t in tasks if t["agent_type"] == ROOT_AGENT and t["input"].get("replan_for"))
+        if used >= rc.limits.max_replans or len(tasks) + 1 > rc.limits.max_tasks:
+            return
+        dependents = [t for t in tasks if row["id"] in t["depends_on"] and t["agent_type"] == "critic"]
+        critic = dependents[0] if dependents else None
+        survivors = [d for d in (critic["depends_on"] if critic else []) if d != row["id"]
+                     and self.store.get_task(d)["status"] == "succeeded"]
+        new = {"id": new_id("task"), "agent_type": ROOT_AGENT, "title": f"Replan after failed {row['agent_type']} task",
+               "input": {"question": rc.question, "replan_for": row["id"], "failed_input": row["input"], "error": error[:300],
+                         "critic_input": critic["input"] if critic else None, "critic_depends_on": survivors},
+               "depends_on": [], "iteration": row["iteration"], "parent_task_id": row["id"], "requires_approval": 0}
+        self.store.add_tasks(rc.run_id, [new])
+        self._event(rc.run_id, "replan_requested", {"failed_task": row["id"], "agent_type": row["agent_type"], "error": error[:300]}, new["id"])
+        self._event(rc.run_id, "task_created", _task_payload(new), new["id"])
 
     def _on_success(self, rc: _RunCtl, row: dict, out: AgentOutput) -> None:
         run_id = rc.run_id

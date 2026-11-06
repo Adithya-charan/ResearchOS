@@ -54,7 +54,7 @@ def dump(path):
 def test_a_new_file_database_is_created_by_migrations(tmp_path):
     db = tmp_path / "engine.db"
     Store(db).close()
-    assert migrate.current_revision(str(db)) == migrate.head_revision() == "0001"
+    assert migrate.current_revision(str(db)) == migrate.head_revision() == "0002"
     assert {"projects", "runs", "tasks", "events", "approvals", "memory", "alembic_version"} <= \
         {r[0] for r in sqlite3.connect(db).execute("SELECT name FROM sqlite_master WHERE type='table'")}
 
@@ -67,7 +67,7 @@ def test_reopening_is_a_no_op_and_keeps_data(tmp_path):
     s2 = Store(db)
     assert s2.get_project(pid)["question"] == "q"
     s2.close()
-    assert migrate.current_revision(str(db)) == "0001"
+    assert migrate.current_revision(str(db)) == migrate.head_revision()
 
 
 def test_in_memory_and_file_stores_get_the_same_schema(tmp_path):
@@ -87,7 +87,7 @@ def test_a_database_made_before_migrations_is_adopted_with_its_data(tmp_path):
     s = Store(db)
     assert s.get_project("prj_old")["title"] == "Old"
     s.close()
-    assert migrate.current_revision(str(db)) == "0001"
+    assert migrate.current_revision(str(db)) == migrate.head_revision()
     assert sqlite3.connect(db).execute("SELECT COUNT(*) FROM schema_info").fetchone()[0] == 1  # not duplicated
 
 
@@ -125,7 +125,7 @@ def test_downgrade_then_upgrade_round_trips(tmp_path):
     with eng.begin() as conn:
         command.downgrade(migrate._config(conn), "base")
     assert dump(db) == {}
-    assert migrate.upgrade(str(db)) == "0001"
+    assert migrate.upgrade(str(db)) == migrate.head_revision()
     assert dump(db) == before
     eng.dispose()
 
@@ -144,7 +144,7 @@ def test_two_processes_starting_together_both_succeed(tmp_path):
     [t.start() for t in threads]
     [t.join() for t in threads]
     assert not errors and len(stores) == 6
-    assert migrate.current_revision(str(db)) == "0001"
+    assert migrate.current_revision(str(db)) == migrate.head_revision()
     [s.close() for s in stores]
 
 
@@ -158,4 +158,23 @@ def test_separate_processes_starting_together_both_succeed(tmp_path):
     procs = [subprocess.Popen([sys.executable, "-c", code], cwd=root, stderr=subprocess.PIPE) for _ in range(4)]
     results = [(p.wait(timeout=120), p.stderr.read().decode()[-300:]) for p in procs]
     assert all(rc == 0 for rc, _ in results), results
+    assert migrate.current_revision(str(db)) == migrate.head_revision()
+
+
+def test_a_database_at_the_baseline_upgrades_to_execution_records_keeping_its_data(tmp_path):
+    from alembic import command
+    from sqlalchemy import create_engine
+    db = tmp_path / "engine.db"
+    s = Store(db)
+    pid = s.create_project("t", "q")
+    s.close()
+    eng = create_engine(f"sqlite:///{db}")
+    with eng.begin() as conn:
+        command.downgrade(migrate._config(conn), "0001")
+    eng.dispose()
     assert migrate.current_revision(str(db)) == "0001"
+    assert "task_executions" not in dump(db)
+    s2 = Store(db)  # opening upgrades
+    assert s2.get_project(pid)["title"] == "t"
+    assert "task_executions" in dump(db)
+    s2.close()
