@@ -19,6 +19,7 @@ COPY research ./research
 COPY api ./api
 COPY scripts ./scripts
 COPY configs ./configs
+COPY alembic.ini ./
 COPY artifacts/tokenizer ./artifacts/tokenizer
 
 # Unprivileged user; all mutable state lives under /data.
