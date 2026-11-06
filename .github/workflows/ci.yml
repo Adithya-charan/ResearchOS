@@ -49,3 +49,28 @@ jobs:
         run: |
           big=$(git ls-files -z | xargs -0 du -k | awk '$1 > 5120 {print $2}')
           if [ -n "$big" ]; then echo "files over 5 MB:"; echo "$big"; exit 1; fi
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose file
+        run: docker compose config -q
+      - name: Build image
+        run: docker build -t researchos-api:ci .
+      - name: Run container as a non-root user and check health
+        run: |
+          docker run -d --name api -p 8000:8000 --read-only --tmpfs /tmp --cap-drop ALL             --security-opt no-new-privileges:true -v ci-data:/data researchos-api:ci
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8000/health; then echo; break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/health
+          test "$(docker exec api id -u)" = "10001"
+          docker logs api | tail -20
+      - name: Register and sign in through the container
+        run: |
+          curl -fsS -c jar -H 'Content-Type: application/json'             -d '{"email":"ci@example.org","password":"correct horse battery 42"}' http://127.0.0.1:8000/auth/register
+          curl -fsS -b jar http://127.0.0.1:8000/auth/me
