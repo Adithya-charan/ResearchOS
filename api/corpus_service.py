@@ -110,7 +110,7 @@ class CorpusManager:
         return dest
 
     def add(self, project_id: str, staged: Path, *, source: str | None, license: str | None,
-            allowed_use: list[str]) -> tuple[IngestReport, str]:
+            allowed_use: list[str], metadata: dict | None = None) -> tuple[IngestReport, str]:
         with self.lock(project_id):
             c = self.get(project_id)
             st = c.stats()
@@ -125,7 +125,7 @@ class CorpusManager:
                 if not clean:
                     raise UploadRejected(422, f"file rejected by the malware scanner: {msg}")
                 scan = "clean"
-            report = c.ingest(staged, source=source, license=license, allowed_use=allowed_use)
+            report = c.ingest(staged, source=source, license=license, allowed_use=allowed_use, metadata=metadata)
             return report, scan
 
     def reprocess(self, project_id: str, doc_id: str) -> IngestReport | None:
@@ -138,7 +138,9 @@ class CorpusManager:
             with tempfile.TemporaryDirectory() as td:
                 tmp = Path(td) / rec.filename
                 shutil.copyfile(c.root / rec.stored_path, tmp)
-                return c.ingest(tmp, source=rec.source, license=rec.license, allowed_use=rec.allowed_use, force=True)
+                declared = {k: getattr(rec, k) for k in ("publication_date", "url", "document_type") if getattr(rec, k)}
+                return c.ingest(tmp, source=rec.source, license=rec.license, allowed_use=rec.allowed_use,
+                                metadata=declared or None, force=True)
 
     def index_for(self, project_id: str) -> BM25Index | None:
         """A snapshot index of the project's searchable passages, or None when the project has no documents."""

@@ -1,0 +1,116 @@
+{
+  "b1_silicon_anode.md": {
+    "title": "Silicon anode swelling in lithium cells",
+    "authors": [
+      "A. Okafor",
+      "L. Brandt"
+    ],
+    "publication_date": "2021-03-14",
+    "url": "https://example.org/retrieval-eval/b1_silicon_anode",
+    "document_type": "article"
+  },
+  "b2_electrolyte_additives.md": {
+    "title": "Electrolyte additives for fast charging",
+    "authors": [
+      "M. Svensson"
+    ],
+    "publication_date": "2022-07-02",
+    "url": "https://example.org/retrieval-eval/b2_electrolyte_additives",
+    "document_type": "article"
+  },
+  "b3_calendar_ageing.md": {
+    "title": "Calendar ageing of stored lithium cells",
+    "authors": [
+      "L. Brandt",
+      "H. Nakamura"
+    ],
+    "publication_date": "2020-11-20",
+    "url": "https://example.org/retrieval-eval/b3_calendar_ageing",
+    "document_type": "report"
+  },
+  "c1_bleaching.md": {
+    "title": "Thermal bleaching thresholds on a fringing reef",
+    "authors": [
+      "T. Marlowe"
+    ],
+    "publication_date": "2019-05-30",
+    "url": "https://example.org/retrieval-eval/c1_bleaching",
+    "document_type": "article"
+  },
+  "c2_larval_settlement.md": {
+    "title": "Larval settlement on reef rubble",
+    "authors": [
+      "T. Marlowe",
+      "P. Iyer"
+    ],
+    "publication_date": "2021-09-09",
+    "url": "https://example.org/retrieval-eval/c2_larval_settlement",
+    "document_type": "article"
+  },
+  "c3_acidification.md": {
+    "title": "Ocean acidification and skeleton density",
+    "authors": [
+      "P. Iyer"
+    ],
+    "publication_date": "2023-01-18",
+    "url": "https://example.org/retrieval-eval/c3_acidification",
+    "document_type": "report"
+  },
+  "f1_client_drift.md": {
+    "title": "Client drift in federated averaging",
+    "authors": [
+      "R. Castillo",
+      "J. Weiss"
+    ],
+    "publication_date": "2022-02-11",
+    "url": "https://example.org/retrieval-eval/f1_client_drift",
+    "document_type": "preprint"
+  },
+  "f2_compression.md": {
+    "title": "Communication compression for federated training",
+    "authors": [
+      "J. Weiss"
+    ],
+    "publication_date": "2023-06-05",
+    "url": "https://example.org/retrieval-eval/f2_compression",
+    "document_type": "article"
+  },
+  "f3_privacy_noise.md": {
+    "title": "Differential privacy noise in training rounds",
+    "authors": [
+      "R. Castillo",
+      "S. Duarte"
+    ],
+    "publication_date": "2024-03-22",
+    "url": "https://example.org/retrieval-eval/f3_privacy_noise",
+    "document_type": "article"
+  },
+  "s1_mycorrhizae.md": {
+    "title": "Mycorrhizal networks and phosphorus uptake",
+    "authors": [
+      "N. Adeyemi"
+    ],
+    "publication_date": "2018-08-01",
+    "url": "https://example.org/retrieval-eval/s1_mycorrhizae",
+    "document_type": "article"
+  },
+  "s2_biochar.md": {
+    "title": "Biochar and soil water retention",
+    "authors": [
+      "N. Adeyemi",
+      "K. Lindqvist"
+    ],
+    "publication_date": "2020-04-10",
+    "url": "https://example.org/retrieval-eval/s2_biochar",
+    "document_type": "report"
+  },
+  "s3_legume_rotation.md": {
+    "title": "Nitrogen fixation in legume rotations",
+    "authors": [
+      "K. Lindqvist"
+    ],
+    "publication_date": "2019-10-15",
+    "url": "https://example.org/retrieval-eval/s3_legume_rotation",
+    "document_type": "article"
+  }
+}

@@ -100,6 +100,44 @@ def extract_metadata(doc: ExtractedDocument, filename: str, overrides: dict | No
             if not DOI_RE.fullmatch(str(value).strip()):
                 raise ValueError(f"'{value}' does not look like a DOI (10.xxxx/...)")
             out["doi"] = str(value).strip().lower()
+        elif key == "publication_date":
+            out["publication_date"] = _valid_date(str(value))
+            if "year" not in (overrides or {}):
+                out["year"], out["year_source"] = int(out["publication_date"][:4]), "user"
+        elif key == "url":
+            out["url"] = _valid_url(str(value))
+        elif key == "document_type":
+            if str(value) not in DOCUMENT_TYPES:
+                raise ValueError(f"document_type must be one of {sorted(DOCUMENT_TYPES)}")
+            out["document_type"] = str(value)
         else:
             raise ValueError(f"unknown metadata field '{key}'")
     return out
+
+
+DOCUMENT_TYPES = frozenset({"article", "preprint", "report", "thesis", "book", "chapter", "notes", "other"})
+_DATE_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
+
+
+def _valid_date(value: str) -> str:
+    """YYYY, YYYY-MM or YYYY-MM-DD, and a real calendar date. Returned unchanged (precision is kept, never padded)."""
+    m = _DATE_RE.match(value.strip())
+    if not m:
+        raise ValueError(f"publication_date '{value}' must be YYYY, YYYY-MM or YYYY-MM-DD")
+    year, month, day = int(m.group(1)), int(m.group(2) or 1), int(m.group(3) or 1)
+    if not _valid_year(year):
+        raise ValueError(f"publication_date year {year} is out of range")
+    try:
+        datetime.date(year, month, day)
+    except ValueError as e:
+        raise ValueError(f"publication_date '{value}' is not a real date") from e
+    return value.strip()
+
+
+def _valid_url(value: str) -> str:
+    from urllib.parse import urlparse
+    value = value.strip()
+    u = urlparse(value)
+    if u.scheme not in ("http", "https") or not u.netloc or len(value) > 500 or any(c.isspace() for c in value):
+        raise ValueError("url must be an http(s) address of at most 500 characters")
+    return value

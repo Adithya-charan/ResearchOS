@@ -30,6 +30,34 @@ class SearchHit:
     passage: Passage
     score: float
     matched_terms: tuple[str, ...]
+    matched_phrases: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class DocumentHit:
+    """A document ranked by its best passage (document-level retrieval). `passages` are its top chunk-level hits."""
+    document_id: str
+    score: float
+    passages: tuple[SearchHit, ...]
+
+
+_PHRASE_RE = re.compile(r'"([^"]+)"')
+_WORD_RE = re.compile(r"\w+", re.UNICODE)
+
+
+def split_phrases(query: str) -> tuple[list[str], str]:
+    """'\"solid state\" battery' -> (['solid state'], 'battery'). Phrases are the double-quoted parts of the query."""
+    phrases = [p.strip() for p in _PHRASE_RE.findall(query) if p.strip()]
+    return phrases, _PHRASE_RE.sub(" ", query)
+
+
+def contains_phrase(text: str, phrase: str) -> bool:
+    """True if the phrase's words occur contiguously, in order, in the text (case-insensitive, punctuation ignored, no
+    stemming and no stopword removal: 'state of charge' will not match 'state charge')."""
+    words = [w.lower() for w in _WORD_RE.findall(text)]
+    target = [w.lower() for w in _WORD_RE.findall(phrase)]
+    n = len(target)
+    return n > 0 and any(words[i:i + n] == target for i in range(len(words) - n + 1))
 
 
 class BM25Index:
@@ -87,13 +115,17 @@ class BM25Index:
 
     def search(self, query: str, k: int = 10, document_ids: set[str] | None = None,
                predicate: Callable[[Passage], bool] | None = None) -> list[SearchHit]:
-        """Top-k passages. `document_ids` restricts to those documents; `predicate` is an extra per-passage filter."""
+        """Top-k passages. `document_ids` restricts to those documents; `predicate` is an extra per-passage filter.
+        Double-quoted parts of the query are phrases: a passage must contain each phrase contiguously to be returned
+        (their words also contribute to the score)."""
         if not self._passages:
             return []
-        terms = list(dict.fromkeys(analyze(query)))
+        phrases, _ = split_phrases(query)
+        terms = list(dict.fromkeys(analyze(re.sub(r'"', " ", query))))
         avg_len = max(self._total_len / len(self._passages), 1e-9)
         scores: dict[int, float] = defaultdict(float)
         matched: dict[int, list[str]] = defaultdict(list)
+        phrase_ok: dict[int, bool] = {}
         for term in terms:
             idf = self.idf(term)
             for idx, tf in self._postings.get(term, ()):
@@ -102,12 +134,27 @@ class BM25Index:
                     continue
                 if predicate is not None and not predicate(p):
                     continue
+                if phrases and idx not in phrase_ok:
+                    phrase_ok[idx] = all(contains_phrase(p.text, ph) for ph in phrases)
+                if phrases and not phrase_ok[idx]:
+                    continue
                 norm = tf + self.k1 * (1 - self.b + self.b * self._lengths[idx] / avg_len)
                 scores[idx] += idf * tf * (self.k1 + 1) / norm
                 matched[idx].append(term)
         # deterministic: highest score first, ties broken by passage id
         best = heapq.nsmallest(k, scores.items(), key=lambda kv: (-kv[1], self._passages[kv[0]].passage_id))
-        return [SearchHit(self._passages[i], s, tuple(matched[i])) for i, s in best]
+        return [SearchHit(self._passages[i], s, tuple(matched[i]), tuple(phrases)) for i, s in best]
+
+    def search_documents(self, query: str, k: int = 10, document_ids: set[str] | None = None,
+                         predicate: Callable[[Passage], bool] | None = None, passages_per_document: int = 3) -> list[DocumentHit]:
+        """Document-level retrieval: documents ranked by their best-scoring passage (BM25 itself is passage-level, so this is an
+        aggregation, not a separate model). Ties are broken by document id."""
+        hits = self.search(query, k=max(len(self._passages), 1), document_ids=document_ids, predicate=predicate)
+        grouped: dict[str, list[SearchHit]] = {}
+        for h in hits:
+            grouped.setdefault(h.passage.document_id, []).append(h)
+        ranked = sorted(grouped.items(), key=lambda kv: (-kv[1][0].score, kv[0]))[:k]
+        return [DocumentHit(d, hs[0].score, tuple(hs[:passages_per_document])) for d, hs in ranked]
 
 
 _HEADING_RE = re.compile(r"^(?:\d+\.\s+\S.*|Abstract|Conclusion\.?)$")

@@ -1,0 +1,743 @@
+{
+  "dataset": {
+    "documents": 12,
+    "queries": 22,
+    "ks": [
+      1,
+      3,
+      5
+    ]
+  },
+  "overall": {
+    "queries": 22,
+    "mrr": 0.8636,
+    "precision@1": 0.8636,
+    "precision@3": 0.3939,
+    "precision@5": 0.2364,
+    "recall@1": 0.75,
+    "recall@3": 0.8636,
+    "recall@5": 0.8636,
+    "chunk_precision@1": 0.8636,
+    "chunk_precision@3": 0.5606,
+    "chunk_precision@5": 0.3818
+  },
+  "by_kind": {
+    "filtered": {
+      "queries": 2,
+      "mrr": 1.0,
+      "precision@1": 1.0,
+      "precision@3": 0.5,
+      "precision@5": 0.3,
+      "recall@1": 0.75,
+      "recall@3": 1.0,
+      "recall@5": 1.0,
+      "chunk_precision@1": 1.0,
+      "chunk_precision@3": 0.8334,
+      "chunk_precision@5": 0.6
+    },
+    "lexical": {
+      "queries": 12,
+      "mrr": 1.0,
+      "precision@1": 1.0,
+      "precision@3": 0.3333,
+      "precision@5": 0.2,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "recall@5": 1.0,
+      "chunk_precision@1": 1.0,
+      "chunk_precision@3": 0.5556,
+      "chunk_precision@5": 0.3333
+    },
+    "phrase": {
+      "queries": 2,
+      "mrr": 1.0,
+      "precision@1": 1.0,
+      "precision@3": 0.3333,
+      "precision@5": 0.2,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "recall@5": 1.0,
+      "chunk_precision@1": 1.0,
+      "chunk_precision@3": 0.5,
+      "chunk_precision@5": 0.3
+    },
+    "synonym": {
+      "queries": 3,
+      "mrr": 0.0,
+      "precision@1": 0.0,
+      "precision@3": 0.0,
+      "precision@5": 0.0,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "recall@5": 0.0,
+      "chunk_precision@1": 0.0,
+      "chunk_precision@3": 0.0,
+      "chunk_precision@5": 0.0
+    },
+    "topic": {
+      "queries": 3,
+      "mrr": 1.0,
+      "precision@1": 1.0,
+      "precision@3": 1.0,
+      "precision@5": 0.6,
+      "recall@1": 0.3333,
+      "recall@3": 1.0,
+      "recall@5": 1.0,
+      "chunk_precision@1": 1.0,
+      "chunk_precision@3": 1.0,
+      "chunk_precision@5": 0.8667
+    }
+  },
+  "per_query": [
+    {
+      "id": "q01",
+      "kind": "lexical",
+      "query": "silicon anode swelling during cycling",
+      "relevant": [
+        "b1_silicon_anode.md"
+      ],
+      "ranked": [
+        "b1_silicon_anode.md",
+        "b2_electrolyte_additives.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q02",
+      "kind": "lexical",
+      "query": "fluoroethylene additive electrolyte fast charge",
+      "relevant": [
+        "b2_electrolyte_additives.md"
+      ],
+      "ranked": [
+        "b2_electrolyte_additives.md",
+        "b3_calendar_ageing.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q03",
+      "kind": "lexical",
+      "query": "calendar ageing storage temperature capacity fade",
+      "relevant": [
+        "b3_calendar_ageing.md"
+      ],
+      "ranked": [
+        "b3_calendar_ageing.md",
+        "s2_biochar.md",
+        "c1_bleaching.md",
+        "b2_electrolyte_additives.md",
+        "b1_silicon_anode.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q04",
+      "kind": "lexical",
+      "query": "bleaching degree heating weeks threshold",
+      "relevant": [
+        "c1_bleaching.md"
+      ],
+      "ranked": [
+        "c1_bleaching.md",
+        "c2_larval_settlement.md",
+        "c3_acidification.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      }
+    },
+    {
+      "id": "q05",
+      "kind": "lexical",
+      "query": "larval settlement rubble substrate",
+      "relevant": [
+        "c2_larval_settlement.md"
+      ],
+      "ranked": [
+        "c2_larval_settlement.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      }
+    },
+    {
+      "id": "q06",
+      "kind": "lexical",
+      "query": "aragonite saturation skeleton density",
+      "relevant": [
+        "c3_acidification.md"
+      ],
+      "ranked": [
+        "c3_acidification.md",
+        "s2_biochar.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      }
+    },
+    {
+      "id": "q07",
+      "kind": "lexical",
+      "query": "client drift non-iid local epochs",
+      "relevant": [
+        "f1_client_drift.md"
+      ],
+      "ranked": [
+        "f1_client_drift.md",
+        "f2_compression.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q08",
+      "kind": "lexical",
+      "query": "top-k sparsification gradient compression bytes per round",
+      "relevant": [
+        "f2_compression.md"
+      ],
+      "ranked": [
+        "f2_compression.md",
+        "s3_legume_rotation.md",
+        "f3_privacy_noise.md",
+        "f1_client_drift.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q09",
+      "kind": "lexical",
+      "query": "gaussian noise clipping privacy budget epsilon",
+      "relevant": [
+        "f3_privacy_noise.md"
+      ],
+      "ranked": [
+        "f3_privacy_noise.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q10",
+      "kind": "lexical",
+      "query": "arbuscular mycorrhizal phosphorus uptake hyphae",
+      "relevant": [
+        "s1_mycorrhizae.md"
+      ],
+      "ranked": [
+        "s1_mycorrhizae.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      }
+    },
+    {
+      "id": "q11",
+      "kind": "lexical",
+      "query": "biochar water holding capacity sandy soil",
+      "relevant": [
+        "s2_biochar.md"
+      ],
+      "ranked": [
+        "s2_biochar.md",
+        "c3_acidification.md",
+        "s3_legume_rotation.md",
+        "s1_mycorrhizae.md",
+        "b2_electrolyte_additives.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q12",
+      "kind": "lexical",
+      "query": "legume rotation nitrogen fixation nodules",
+      "relevant": [
+        "s3_legume_rotation.md"
+      ],
+      "ranked": [
+        "s3_legume_rotation.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q13",
+      "kind": "topic",
+      "query": "lithium cells capacity",
+      "relevant": [
+        "b1_silicon_anode.md",
+        "b2_electrolyte_additives.md",
+        "b3_calendar_ageing.md"
+      ],
+      "ranked": [
+        "b3_calendar_ageing.md",
+        "b2_electrolyte_additives.md",
+        "b1_silicon_anode.md",
+        "s2_biochar.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 0.6
+      },
+      "recall": {
+        "1": 0.3333,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      }
+    },
+    {
+      "id": "q14",
+      "kind": "topic",
+      "query": "federated clients accuracy",
+      "relevant": [
+        "f1_client_drift.md",
+        "f2_compression.md",
+        "f3_privacy_noise.md"
+      ],
+      "ranked": [
+        "f1_client_drift.md",
+        "f2_compression.md",
+        "f3_privacy_noise.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 0.6
+      },
+      "recall": {
+        "1": 0.3333,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      }
+    },
+    {
+      "id": "q15",
+      "kind": "topic",
+      "query": "coral reef",
+      "relevant": [
+        "c1_bleaching.md",
+        "c2_larval_settlement.md",
+        "c3_acidification.md"
+      ],
+      "ranked": [
+        "c1_bleaching.md",
+        "c2_larval_settlement.md",
+        "c3_acidification.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 0.6
+      },
+      "recall": {
+        "1": 0.3333,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 0.6
+      }
+    },
+    {
+      "id": "q16",
+      "kind": "phrase",
+      "query": "\"client drift\"",
+      "relevant": [
+        "f1_client_drift.md"
+      ],
+      "ranked": [
+        "f1_client_drift.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q17",
+      "kind": "phrase",
+      "query": "\"heating weeks\"",
+      "relevant": [
+        "c1_bleaching.md"
+      ],
+      "ranked": [
+        "c1_bleaching.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      }
+    },
+    {
+      "id": "q18",
+      "kind": "filtered",
+      "query": "soil water biochar nitrogen phosphorus",
+      "relevant": [
+        "s2_biochar.md"
+      ],
+      "ranked": [
+        "s2_biochar.md",
+        "c3_acidification.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.3333,
+        "5": 0.2
+      },
+      "recall": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      }
+    },
+    {
+      "id": "q19",
+      "kind": "filtered",
+      "query": "capacity cells",
+      "relevant": [
+        "b1_silicon_anode.md",
+        "b3_calendar_ageing.md"
+      ],
+      "ranked": [
+        "b1_silicon_anode.md",
+        "b3_calendar_ageing.md"
+      ],
+      "precision": {
+        "1": 1.0,
+        "3": 0.6667,
+        "5": 0.4
+      },
+      "recall": {
+        "1": 0.5,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "reciprocal_rank": 1.0,
+      "chunk_precision": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 0.8
+      }
+    },
+    {
+      "id": "q20",
+      "kind": "synonym",
+      "query": "rechargeable power pack deterioration while shelved",
+      "relevant": [
+        "b3_calendar_ageing.md"
+      ],
+      "ranked": [],
+      "precision": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "recall": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "reciprocal_rank": 0.0,
+      "chunk_precision": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      }
+    },
+    {
+      "id": "q21",
+      "kind": "synonym",
+      "query": "warming triggered discolouration of marine invertebrates",
+      "relevant": [
+        "c1_bleaching.md"
+      ],
+      "ranked": [],
+      "precision": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "recall": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "reciprocal_rank": 0.0,
+      "chunk_precision": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      }
+    },
+    {
+      "id": "q22",
+      "kind": "synonym",
+      "query": "keeping individual contributions confidential in collaborative learning",
+      "relevant": [
+        "f3_privacy_noise.md"
+      ],
+      "ranked": [
+        "s1_mycorrhizae.md"
+      ],
+      "precision": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "recall": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "reciprocal_rank": 0.0,
+      "chunk_precision": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      }
+    }
+  ],
+  "deduplication": {
+    "files_offered": 13,
+    "documents_stored": 12,
+    "duplicates_detected": [
+      "copy_of_b1.md"
+    ],
+    "duplicate_points_at": {
+      "copy_of_b1.md": "b1_silicon_anode.md"
+    },
+    "failed_or_rejected": []
+  },
+  "metadata": {
+    "documents_checked": 12,
+    "mismatches": []
+  },
+  "citations": {
+    "results_checked": 60,
+    "resolved": 60,
+    "unresolved": []
+  },
+  "limitations": [
+    "BM25 matches words, not meaning: a query that shares no vocabulary with the relevant document finds nothing ('synonym' queries below).",
+    "Stemming is English-only and light; spelling variants, abbreviations and other languages are not bridged.",
+    "Scores are relative to the indexed corpus (IDF depends on it) and are not comparable across libraries.",
+    "This set is tiny (invented documents, one relevant document per query in most cases); its numbers are a sanity check, not a measure of quality on real literature.",
+    "Phrase search requires exact contiguous words (no stemming, no stopword removal inside the phrase)."
+  ]
+}

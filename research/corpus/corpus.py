@@ -16,12 +16,14 @@ import gc
 import hashlib
 import math
 import os
+import re
 import uuid
 from collections import Counter, OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from research.bm25.analysis import STOPWORDS, raw_tokens, stem
+from research.bm25.analysis import analyze
 from research.bm25.index import BM25Index, Passage
 from research.corpus.extract import extract_file
 from research.corpus.extract_pdf import DEFAULT_MAX_PAGES
@@ -46,6 +48,8 @@ class SearchFilters:
     year_max: int | None = None
     licenses: frozenset[str] | None = None
     exclude_low_quality: bool = False  # drop passages from pages whose text extraction looks unreliable
+    document_types: frozenset[str] | None = None  # declared types (article, report, ...); undeclared documents never match
+    author: str | None = None  # case-insensitive substring of a declared/extracted author name
 
 
 @dataclass(frozen=True)
@@ -54,6 +58,16 @@ class CorpusHit:
     score: float
     matched_terms: tuple[str, ...]
     document: DocumentRecord
+    matched_phrases: tuple[str, ...] = ()
+
+    def citation(self, excerpt_chars: int = 300) -> dict:
+        """Everything needed to cite and re-find this result. All values come from the stored records; nothing is invented
+        (url/doi/page are None when the document does not declare them)."""
+        text = " ".join(self.passage.text.split())
+        return {"document_id": self.passage.document_id, "chunk_id": self.passage.passage_id, "title": self.document.title,
+                "excerpt": text if len(text) <= excerpt_chars else text[:excerpt_chars].rstrip() + "...",
+                "page_number": self.passage.page_number, "section": self.passage.section, "score": round(self.score, 4),
+                "url": self.document.url, "doi": self.document.doi, "source": self.document.source}
 
 
 @dataclass
@@ -182,7 +196,8 @@ class Corpus:
             extraction_method=extracted.method, extraction_status="ok" if summary["status"] == "ok" else "partial",
             quality=summary, warnings=warnings, source=source, license=license, allowed_use=list(allowed_use),
             ingested_at=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-            stored_path=stored.relative_to(self.root).as_posix())
+            stored_path=stored.relative_to(self.root).as_posix(), publication_date=meta.get("publication_date"),
+            url=meta.get("url"), document_type=meta.get("document_type"))
         self.store.save_document(rec, passages, extracted.method, replace=existing is not None)
         if existing is not None:
             self.rebuild_index()
@@ -251,10 +266,11 @@ class Corpus:
     # ------------------------------------------------------------------ retrieval
     def _matching_ids(self, f: SearchFilters) -> set[str] | None:
         """Ids of the documents allowed by the metadata filters; None means 'no restriction'."""
-        if f.document_ids is None and not f.file_types and f.year_min is None and f.year_max is None and not f.licenses:
+        if (f.document_ids is None and not f.file_types and f.year_min is None and f.year_max is None and not f.licenses
+                and not f.document_types and not f.author):
             return None
         ids = self.store.document_ids_matching(file_types=f.file_types, year_min=f.year_min, year_max=f.year_max,
-                                               licenses=f.licenses)
+                                               licenses=f.licenses, document_types=f.document_types, author=f.author)
         return ids & set(f.document_ids) if f.document_ids is not None else ids
 
     def build_index(self, filters: SearchFilters | None = None) -> BM25Index:
@@ -279,8 +295,52 @@ class Corpus:
         for h in hits:
             if h.passage.document_id not in docs:
                 docs[h.passage.document_id] = self.store.get_document(h.passage.document_id)  # type: ignore[assignment]
-            out.append(CorpusHit(h.passage, h.score, h.matched_terms, docs[h.passage.document_id]))
+            out.append(CorpusHit(h.passage, h.score, h.matched_terms, docs[h.passage.document_id], h.matched_phrases))
         return out
+
+    def search_documents(self, query: str, k: int = 8, filters: SearchFilters | None = None) -> list[dict]:
+        """Document-level results: each document once, ranked by its best passage, with its top chunk-level citations."""
+        f = filters or SearchFilters()
+        ids = self._matching_ids(f)
+        if ids is not None and not ids:
+            return []
+        out = []
+        for dh in self.index.search_documents(query, k=k, document_ids=ids,
+                                              predicate=(lambda p: p.quality == "ok") if f.exclude_low_quality else None):
+            doc = self.store.get_document(dh.document_id)
+            out.append({"document": _brief(doc), "score": round(dh.score, 4),
+                        "citations": [CorpusHit(h.passage, h.score, h.matched_terms, doc, h.matched_phrases).citation() for h in dh.passages]})
+        return out
+
+    def search_metadata(self, query: str, k: int = 8, filters: SearchFilters | None = None) -> list[dict]:
+        """Search the document records (title, authors, DOI, source, filename, declared type/date), not the text. A query word
+        scores per field it appears in (title and authors count most; a DOI match must be exact). Documents that match nothing
+        are not returned."""
+        ids = self._matching_ids(filters or SearchFilters())
+        words = list(dict.fromkeys(analyze(query)))  # stemmed, stopwords dropped: "in"/"the" must not match titles
+        if not words:
+            return []
+        scored = []
+        for d in self.store.list_documents():
+            if not d.searchable or (ids is not None and d.id not in ids):
+                continue
+            fields = {"title": d.title, "authors": " ".join(d.authors), "source": d.source or "", "filename": d.filename,
+                      "document_type": d.document_type or "", "publication_date": d.publication_date or ""}
+            weight = {"title": 3.0, "authors": 3.0, "source": 1.0, "filename": 1.0, "document_type": 1.0, "publication_date": 1.0}
+            matched, score = [], 0.0
+            for name, text in fields.items():
+                have = set(analyze(text))
+                hit = [w for w in words if w in have]
+                if hit:
+                    matched.append(name)
+                    score += weight[name] * len(set(hit)) / len(set(words))
+            if d.doi and d.doi.lower() in query.lower():
+                matched.append("doi")
+                score += 5.0
+            if score > 0:
+                scored.append((score, d, matched))
+        scored.sort(key=lambda t: (-t[0], t[1].id))
+        return [{"document": _brief(d), "score": round(s, 4), "matched_fields": m} for s, d, m in scored[:k]]
 
     def get_document(self, doc_id: str) -> DocumentRecord | None:
         return self.store.get_document(doc_id)
@@ -424,7 +484,8 @@ class Corpus:
 
 def _brief(d: DocumentRecord) -> dict:
     return {"id": d.id, "title": d.title, "authors": d.authors, "year": d.year, "year_source": d.year_source,
-            "pages": d.page_count, "quality": d.quality["status"], "license": d.license, "source": d.source}
+            "pages": d.page_count, "quality": d.quality["status"], "license": d.license, "source": d.source,
+            "doi": d.doi, "url": d.url, "publication_date": d.publication_date, "document_type": d.document_type}
 
 
 def _file_sha256(path: Path) -> str:

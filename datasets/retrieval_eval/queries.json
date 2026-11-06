@@ -1,0 +1,193 @@
+[
+  {
+    "id": "q01",
+    "kind": "lexical",
+    "query": "silicon anode swelling during cycling",
+    "relevant": [
+      "b1_silicon_anode.md"
+    ]
+  },
+  {
+    "id": "q02",
+    "kind": "lexical",
+    "query": "fluoroethylene additive electrolyte fast charge",
+    "relevant": [
+      "b2_electrolyte_additives.md"
+    ]
+  },
+  {
+    "id": "q03",
+    "kind": "lexical",
+    "query": "calendar ageing storage temperature capacity fade",
+    "relevant": [
+      "b3_calendar_ageing.md"
+    ]
+  },
+  {
+    "id": "q04",
+    "kind": "lexical",
+    "query": "bleaching degree heating weeks threshold",
+    "relevant": [
+      "c1_bleaching.md"
+    ]
+  },
+  {
+    "id": "q05",
+    "kind": "lexical",
+    "query": "larval settlement rubble substrate",
+    "relevant": [
+      "c2_larval_settlement.md"
+    ]
+  },
+  {
+    "id": "q06",
+    "kind": "lexical",
+    "query": "aragonite saturation skeleton density",
+    "relevant": [
+      "c3_acidification.md"
+    ]
+  },
+  {
+    "id": "q07",
+    "kind": "lexical",
+    "query": "client drift non-iid local epochs",
+    "relevant": [
+      "f1_client_drift.md"
+    ]
+  },
+  {
+    "id": "q08",
+    "kind": "lexical",
+    "query": "top-k sparsification gradient compression bytes per round",
+    "relevant": [
+      "f2_compression.md"
+    ]
+  },
+  {
+    "id": "q09",
+    "kind": "lexical",
+    "query": "gaussian noise clipping privacy budget epsilon",
+    "relevant": [
+      "f3_privacy_noise.md"
+    ]
+  },
+  {
+    "id": "q10",
+    "kind": "lexical",
+    "query": "arbuscular mycorrhizal phosphorus uptake hyphae",
+    "relevant": [
+      "s1_mycorrhizae.md"
+    ]
+  },
+  {
+    "id": "q11",
+    "kind": "lexical",
+    "query": "biochar water holding capacity sandy soil",
+    "relevant": [
+      "s2_biochar.md"
+    ]
+  },
+  {
+    "id": "q12",
+    "kind": "lexical",
+    "query": "legume rotation nitrogen fixation nodules",
+    "relevant": [
+      "s3_legume_rotation.md"
+    ]
+  },
+  {
+    "id": "q13",
+    "kind": "topic",
+    "query": "lithium cells capacity",
+    "relevant": [
+      "b1_silicon_anode.md",
+      "b2_electrolyte_additives.md",
+      "b3_calendar_ageing.md"
+    ]
+  },
+  {
+    "id": "q14",
+    "kind": "topic",
+    "query": "federated clients accuracy",
+    "relevant": [
+      "f1_client_drift.md",
+      "f2_compression.md",
+      "f3_privacy_noise.md"
+    ]
+  },
+  {
+    "id": "q15",
+    "kind": "topic",
+    "query": "coral reef",
+    "relevant": [
+      "c1_bleaching.md",
+      "c2_larval_settlement.md",
+      "c3_acidification.md"
+    ]
+  },
+  {
+    "id": "q16",
+    "kind": "phrase",
+    "query": "\"client drift\"",
+    "relevant": [
+      "f1_client_drift.md"
+    ]
+  },
+  {
+    "id": "q17",
+    "kind": "phrase",
+    "query": "\"heating weeks\"",
+    "relevant": [
+      "c1_bleaching.md"
+    ]
+  },
+  {
+    "id": "q18",
+    "kind": "filtered",
+    "query": "soil water biochar nitrogen phosphorus",
+    "relevant": [
+      "s2_biochar.md"
+    ],
+    "filters": {
+      "document_types": [
+        "report"
+      ]
+    }
+  },
+  {
+    "id": "q19",
+    "kind": "filtered",
+    "query": "capacity cells",
+    "relevant": [
+      "b1_silicon_anode.md",
+      "b3_calendar_ageing.md"
+    ],
+    "filters": {
+      "author": "Brandt"
+    }
+  },
+  {
+    "id": "q20",
+    "kind": "synonym",
+    "query": "rechargeable power pack deterioration while shelved",
+    "relevant": [
+      "b3_calendar_ageing.md"
+    ]
+  },
+  {
+    "id": "q21",
+    "kind": "synonym",
+    "query": "warming triggered discolouration of marine invertebrates",
+    "relevant": [
+      "c1_bleaching.md"
+    ]
+  },
+  {
+    "id": "q22",
+    "kind": "synonym",
+    "query": "keeping individual contributions confidential in collaborative learning",
+    "relevant": [
+      "f3_privacy_noise.md"
+    ]
+  }
+]

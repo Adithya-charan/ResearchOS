@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 
@@ -28,7 +29,9 @@ def _doc_view(rec, corpus, full: bool = False) -> dict:
             "year_source": rec.year_source, "doi": rec.doi, "pages": rec.page_count, "source": rec.source,
             "license": rec.license, "allowed_use": rec.allowed_use, "extraction_status": rec.extraction_status,
             "extraction_method": rec.extraction_method, "quality": rec.quality, "warnings": rec.warnings,
-            "file_hash": rec.file_hash, "ingested_at": rec.ingested_at}
+            "file_hash": rec.file_hash, "ingested_at": rec.ingested_at, "created_at": rec.ingested_at,
+            "publication_date": rec.publication_date, "url": rec.url, "document_type": rec.document_type,
+            "ingestion_status": "ingested"}
     if full:
         flagged = []
         for p in corpus.index.document_passages(rec.id):
@@ -52,14 +55,23 @@ def _doc_or_404(corpus, doc_id: str):
 def upload_document(project_id: str, request: Request, auth: CurrentAuth, db: DB, file: UploadFile = File(...),
                     source: str | None = Form(default=None, max_length=300),
                     license: str | None = Form(default=None, max_length=100),
-                    allowed_use: str = Form(default="search,quote", max_length=40)):
+                    allowed_use: str = Form(default="search,quote", max_length=40),
+                    title: str | None = Form(default=None, max_length=300),
+                    authors: str | None = Form(default=None, max_length=1000, description="separated by semicolons"),
+                    publication_date: str | None = Form(default=None, max_length=10),
+                    url: str | None = Form(default=None, max_length=500),
+                    document_type: str | None = Form(default=None, max_length=20),
+                    doi: str | None = Form(default=None, max_length=200)):
     owned_project(db, project_id, auth.user.id)
     mgr = request.app.state.corpora
     uses = [u.strip() for u in allowed_use.split(",") if u.strip()]
     try:
         with tempfile.TemporaryDirectory(prefix="upload-") as td:
             staged = mgr.stage(file.filename, _chunks(file), Path(td))
-            report, scan = mgr.add(project_id, staged, source=source, license=license, allowed_use=uses)
+            declared = {"title": title, "authors": [a.strip() for a in (authors or "").split(";") if a.strip()],
+                        "publication_date": publication_date, "url": url, "document_type": document_type,
+                        "doi": doi}  # as declared by the uploader; empty = not declared
+            report, scan = mgr.add(project_id, staged, source=source, license=license, allowed_use=uses, metadata=declared)
     except UploadRejected as e:
         raise HTTPException(e.status, e.message) from e
     except ValueError as e:
@@ -158,16 +170,27 @@ def reprocess_document(project_id: str, doc_id: str, request: Request, auth: Cur
 @router.get("/search")
 def search(project_id: str, request: Request, auth: CurrentAuth, db: DB, q: str = Query(min_length=2, max_length=500),
            k: int = Query(8, ge=1, le=50), year_min: int | None = Query(None, ge=1000, le=3000),
-           year_max: int | None = Query(None, ge=1000, le=3000), exclude_low_quality: bool = False):
+           year_max: int | None = Query(None, ge=1000, le=3000), exclude_low_quality: bool = False,
+           level: Literal["chunk", "document", "metadata"] = "chunk", document_type: str | None = Query(None, max_length=20),
+           author: str | None = Query(None, max_length=200)):
+    """BM25 over the project's own documents. "double quotes" in q require that exact phrase. level=chunk returns passages,
+    document returns each document once (ranked by its best passage), metadata searches titles/authors/DOI/source instead of text."""
     owned_project(db, project_id, auth.user.id)
     mgr = request.app.state.corpora
     if not mgr.exists(project_id):
-        return {"query": q, "hits": [], "note": "this project has no documents yet"}
+        return {"query": q, "level": level, "hits": [], "note": "this project has no documents yet"}
+    filters = SearchFilters(year_min=year_min, year_max=year_max, exclude_low_quality=exclude_low_quality,
+                            document_types=frozenset({document_type}) if document_type else None, author=author)
     with mgr.lock(project_id):
-        hits = mgr.get(project_id).search(q, k, SearchFilters(year_min=year_min, year_max=year_max,
-                                                             exclude_low_quality=exclude_low_quality))
-    return {"query": q, "method": "BM25 (lexical)", "hits": [
+        corpus = mgr.get(project_id)
+        if level == "metadata":
+            return {"query": q, "level": level, "method": "token match on document records", "hits": corpus.search_metadata(q, k, filters)}
+        if level == "document":
+            return {"query": q, "level": level, "method": "BM25 (lexical), best passage per document",
+                    "hits": corpus.search_documents(q, k, filters)}
+        hits = corpus.search(q, k, filters)
+    return {"query": q, "level": level, "method": "BM25 (lexical)", "hits": [
         {"document_id": h.passage.document_id, "title": h.document.title, "year": h.document.year,
          "passage_id": h.passage.passage_id, "page_number": h.passage.page_number, "section": h.passage.section,
          "quality": h.passage.quality, "score": round(h.score, 4), "matched_terms": list(h.matched_terms),
-         "text": h.passage.text} for h in hits]}
+         "matched_phrases": list(h.matched_phrases), "text": h.passage.text, "citation": h.citation()} for h in hits]}

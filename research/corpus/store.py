@@ -13,7 +13,7 @@ from pathlib import Path
 from research.bm25.index import Passage
 from research.corpus.models import DocumentRecord
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # 2 added publication_date, url, document_type
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_info (version INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS documents (
@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS documents (
     year INTEGER, year_source TEXT, doi TEXT, page_count INTEGER NOT NULL,
     extraction_method TEXT NOT NULL, extraction_status TEXT NOT NULL, quality_json TEXT NOT NULL,
     warnings_json TEXT NOT NULL, source TEXT, license TEXT, allowed_use_json TEXT NOT NULL,
-    searchable INTEGER NOT NULL, ingested_at TEXT NOT NULL, stored_path TEXT NOT NULL);
+    searchable INTEGER NOT NULL, ingested_at TEXT NOT NULL, stored_path TEXT NOT NULL,
+    publication_date TEXT, url TEXT, document_type TEXT);
 CREATE TABLE IF NOT EXISTS passages (
     passage_id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
@@ -44,7 +45,8 @@ def _doc(row: sqlite3.Row) -> DocumentRecord:
         page_count=row["page_count"], extraction_method=row["extraction_method"],
         extraction_status=row["extraction_status"], quality=json.loads(row["quality_json"]),
         warnings=json.loads(row["warnings_json"]), source=row["source"], license=row["license"],
-        allowed_use=json.loads(row["allowed_use_json"]), ingested_at=row["ingested_at"], stored_path=row["stored_path"])
+        allowed_use=json.loads(row["allowed_use_json"]), ingested_at=row["ingested_at"], stored_path=row["stored_path"],
+        publication_date=row["publication_date"], url=row["url"], document_type=row["document_type"])
 
 
 def _passage(row: sqlite3.Row) -> Passage:
@@ -66,6 +68,19 @@ class CorpusStore:
             self._conn.executescript(SCHEMA)
             if self._conn.execute("SELECT COUNT(*) FROM schema_info").fetchone()[0] == 0:
                 self._conn.execute("INSERT INTO schema_info VALUES (?)", (SCHEMA_VERSION,))
+            self._upgrade()
+
+    def _upgrade(self) -> None:
+        """Libraries created by older versions gain the new nullable columns (existing rows keep NULL = not declared)."""
+        version = self._conn.execute("SELECT version FROM schema_info").fetchone()[0]
+        if version > SCHEMA_VERSION:
+            raise RuntimeError(f"this document library was written by a newer version (schema {version}, supported {SCHEMA_VERSION})")
+        if version < SCHEMA_VERSION:
+            have = {r[1] for r in self._conn.execute("PRAGMA table_info(documents)")}
+            for col in ("publication_date", "url", "document_type"):
+                if col not in have:
+                    self._conn.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT")
+            self._conn.execute("UPDATE schema_info SET version=?", (SCHEMA_VERSION,))
 
     def close(self) -> None:
         with self._lock:
@@ -106,12 +121,13 @@ class CorpusStore:
             self._conn.execute(
                 "INSERT INTO documents (id, file_hash, filename, file_type, size_bytes, title, title_source, authors_json,"
                 " year, year_source, doi, page_count, extraction_method, extraction_status, quality_json, warnings_json,"
-                " source, license, allowed_use_json, searchable, ingested_at, stored_path)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " source, license, allowed_use_json, searchable, ingested_at, stored_path, publication_date, url, document_type)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (rec.id, rec.file_hash, rec.filename, rec.file_type, rec.size_bytes, rec.title, rec.title_source,
                  json.dumps(rec.authors), rec.year, rec.year_source, rec.doi, rec.page_count, rec.extraction_method,
                  rec.extraction_status, json.dumps(rec.quality, sort_keys=True), json.dumps(rec.warnings), rec.source,
-                 rec.license, json.dumps(rec.allowed_use), int(rec.searchable), rec.ingested_at, rec.stored_path))
+                 rec.license, json.dumps(rec.allowed_use), int(rec.searchable), rec.ingested_at, rec.stored_path,
+                 rec.publication_date, rec.url, rec.document_type))
             for i, p in enumerate(passages):
                 self._conn.execute(
                     "INSERT INTO passages (passage_id, document_id, ordinal, page_number, section, text, text_sha256,"
@@ -137,7 +153,8 @@ class CorpusStore:
     def list_documents(self) -> list[DocumentRecord]:
         return [_doc(r) for r in self._all("SELECT * FROM documents ORDER BY ingested_at, id")]
 
-    def document_ids_matching(self, *, file_types=None, year_min=None, year_max=None, licenses=None) -> set[str]:
+    def document_ids_matching(self, *, file_types=None, year_min=None, year_max=None, licenses=None, document_types=None,
+                              author=None) -> set[str]:
         """Ids of searchable documents that satisfy the metadata filters (blueprint 10.1: filter by metadata and
         source permissions)."""
         where, params = ["searchable = 1"], []
@@ -153,7 +170,14 @@ class CorpusStore:
         if licenses:
             where.append(f"license IN ({','.join('?' * len(licenses))})")
             params += sorted(licenses)
-        return {r["id"] for r in self._all(f"SELECT id FROM documents WHERE {' AND '.join(where)}", tuple(params))}
+        if document_types:
+            where.append(f"document_type IN ({','.join('?' * len(document_types))})")
+            params += sorted(document_types)
+        ids = {r["id"] for r in self._all(f"SELECT id FROM documents WHERE {' AND '.join(where)}", tuple(params))}
+        if author:
+            needle = author.lower()
+            ids = {d.id for d in (self.get_document(i) for i in ids) if d and any(needle in a.lower() for a in d.authors)}
+        return ids
 
     def iter_searchable_passages(self) -> Iterator[Passage]:
         for row in self._all("SELECT p.* FROM passages p JOIN documents d ON d.id = p.document_id "

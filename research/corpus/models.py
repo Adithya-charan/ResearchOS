@@ -86,6 +86,10 @@ class DocumentRecord:
     allowed_use: list[str]
     ingested_at: str
     stored_path: str
+    # Declared by the person ingesting (never guessed from the file): full publication date, source URL, kind of document.
+    publication_date: str | None = None
+    url: str | None = None
+    document_type: str | None = None
 
     @property
     def searchable(self) -> bool:
