@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from api.config import Settings
 from api.db import Base, make_engine, make_sessionmaker
+from api import migrate
 from api.corpus_service import CorpusManager, Scanner
 from api.experiments_service import ExperimentService
 from api.model_service import InferenceService, ModelRegistry, TrainingService
@@ -22,6 +23,18 @@ from api.sse import StreamGate
 from research.bm25.index import BM25Index
 
 log = logging.getLogger("researchos.api")
+def prepare_schema(engine, settings: Settings) -> None:
+    """In-memory databases (tests) are created directly; every other database is managed by Alembic migrations."""
+    if ":memory:" in str(engine.url):
+        Base.metadata.create_all(engine)
+    elif settings.auto_migrate:
+        rev = migrate.upgrade(engine)
+        log.info("database schema at revision %s", rev)
+    elif migrate.current_revision(engine) != migrate.head_revision():
+        raise migrate.SchemaMismatch("the database is not at the latest migration and RESEARCHOS_AUTO_MIGRATE is off: "
+                                     "run `alembic upgrade head` first")
+
+
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 
 
@@ -35,7 +48,7 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
 
     app = FastAPI(title="RESEARCHOS API", version="0.1.0", docs_url="/docs", redoc_url=None, lifespan=lifespan)
     engine = make_engine(settings.database_url)
-    Base.metadata.create_all(engine)  # TODO(migrations): replace with Alembic revisions before any schema change in production
+    prepare_schema(engine, settings)
     app.state.settings = settings
     app.state.db_engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)

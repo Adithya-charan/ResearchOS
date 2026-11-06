@@ -46,6 +46,7 @@ class Settings:
     run_max_tasks: int = 60  # hard ceilings on user-requested limits
     run_max_runtime_s: float = 900.0
     run_max_iterations: int = 4
+    auto_migrate: bool = True  # apply Alembic migrations at startup; False = refuse to start unless already at head
     # --- models: registry, training jobs, inference
     models_dir: Path = ROOT / "artifacts" / "checkpoints"  # operator-trained checkpoints, read-only to the API (one run per sub-folder)
     tokenizer_dir: Path = ROOT / "artifacts" / "tokenizer"
@@ -81,6 +82,7 @@ class Settings:
         if "RESEARCHOS_DATA_DIR" in os.environ:
             s.data_dir = Path(os.environ["RESEARCHOS_DATA_DIR"])
         s.allow_weak_sandbox = _bool("RESEARCHOS_ALLOW_WEAK_SANDBOX", s.allow_weak_sandbox)
+        s.auto_migrate = _bool("RESEARCHOS_AUTO_MIGRATE", s.auto_migrate)
         s.training_enabled = _bool("RESEARCHOS_TRAINING_ENABLED", s.training_enabled)
         s.inference_device = os.environ.get("RESEARCHOS_INFERENCE_DEVICE", s.inference_device)
         if "RESEARCHOS_MODELS_DIR" in os.environ:
