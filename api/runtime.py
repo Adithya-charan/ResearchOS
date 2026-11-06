@@ -1,8 +1,7 @@
-"""Bridge between the API and the custom agent engine. Runs execute in worker threads (never in a request handler); all
-durable state lives in the engine's Store, so a restarted process can recover and continue a run."""
+"""Bridge between the API and the custom agent engine. Runs execute in workers (api/jobs.py), never in a request handler; all
+durable state lives in the engine's Store and the job table, so a restarted process can recover and continue a run."""
 from __future__ import annotations
 
-import asyncio
 import logging
 import threading
 from collections.abc import Callable
@@ -39,7 +38,7 @@ class EngineRuntime:
         self.store = Store(settings.engine_db if str(settings.engine_db) != ":memory:" else ":memory:")
         self._index_provider = index_provider
         self._default_index: BM25Index | None = None
-        self._threads: dict[str, threading.Thread] = {}
+        self.jobs = None  # JobQueue, attached by the app (execution happens in workers, never in request handlers)
         self._lock = threading.Lock()
 
     def index_for(self, project_id: str) -> BM25Index:
@@ -92,39 +91,20 @@ class EngineRuntime:
         return eng.create_run(eng.create_project(question[:80], question), question, limits)
 
     def status(self, engine_run_id: str) -> dict:
+        from api.jobs import lifecycle  # local import: jobs imports this module
         run = self.store.get_run(engine_run_id)
-        return {"status": run["status"], "stop_reason": run["stop_reason"], "control": run["control"],
-                "elapsed_s": run["elapsed_s"], "task_counts": self.store.task_counts(engine_run_id),
-                "model_tokens_used": run["model_tokens_used"], "active": self.is_active(engine_run_id)}
+        job = self.jobs.get(engine_run_id) if self.jobs is not None else None
+        tasks = self.store.list_tasks(engine_run_id)
+        counts: dict[str, int] = {}
+        for t in tasks:
+            counts[t["status"]] = counts.get(t["status"], 0) + 1
+        return {"status": run["status"], "lifecycle": lifecycle(job, run, tasks), "stop_reason": run["stop_reason"],
+                "control": run["control"], "elapsed_s": run["elapsed_s"], "task_counts": counts,
+                "model_tokens_used": run["model_tokens_used"], "active": self.is_active(engine_run_id),
+                "job": None if job is None else {"status": job["status"], "attempts": job["attempts"],
+                                                 "max_attempts": job["max_attempts"], "worker_id": job["worker_id"],
+                                                 "error": job["error"]}}
 
     def is_active(self, engine_run_id: str) -> bool:
-        t = self._threads.get(engine_run_id)
-        return bool(t and t.is_alive())
-
-    def launch(self, engine_run_id: str, project_id: str) -> bool:
-        """Start (or continue) the run in a worker thread. False if it is already executing or already finished."""
-        if self.is_active(engine_run_id) or self.store.get_run(engine_run_id)["status"] in TERMINAL:
-            return False
-        eng = self.engine(project_id)
-
-        def work() -> None:
-            try:
-                asyncio.run(eng.run(engine_run_id))
-            except Exception:  # the engine records task failures itself; this guards the thread
-                log.exception("run %s crashed", engine_run_id)
-
-        t = threading.Thread(target=work, name=f"run-{engine_run_id}", daemon=True)
-        with self._lock:  # check-and-register atomically so two requests cannot start the same run twice
-            if self.is_active(engine_run_id):
-                return False
-            self._threads[engine_run_id] = t
-            t.start()
-        return True
-
-    def wait(self, engine_run_id: str, timeout: float = 60.0) -> None:
-        t = self._threads.get(engine_run_id)
-        if t:
-            t.join(timeout)
-
-    def active_count(self, engine_run_ids: list[str]) -> int:
-        return sum(1 for r in engine_run_ids if self.is_active(r))
+        """True while the run is queued for, or executing on, a worker (any worker, in any process)."""
+        return self.jobs is not None and self.jobs.is_active(engine_run_id)

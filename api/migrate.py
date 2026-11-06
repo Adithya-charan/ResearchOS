@@ -49,11 +49,14 @@ def upgrade(engine: Engine, revision: str = "head") -> str:
     tables = set(inspect(engine).get_table_names())
     if tables and "alembic_version" not in tables and tables & set(Base.metadata.tables):
         diff = schema_diff(engine)
-        if diff:
+        # Whole tables that later migrations add are fine (the upgrade creates them); anything else is an unknown schema.
+        other = [d for d in diff if not (isinstance(d, tuple) and d[0] == "add_table")]
+        if other:
             raise SchemaMismatch("the database has application tables but no migration history and its schema differs from the "
-                                 f"models ({len(diff)} difference(s), first: {diff[0]!r}); back it up and migrate it by hand")
+                                 f"models ({len(other)} difference(s), first: {other[0]!r}); back it up and migrate it by hand")
+        # Already matches the models exactly -> it is at head; missing only later tables -> it is at the baseline.
         with engine.begin() as conn:
-            command.stamp(_config(conn), _baseline())
+            command.stamp(_config(conn), "head" if not diff else _baseline())
     with engine.begin() as conn:
         command.upgrade(_config(conn), revision)
     return current_revision(engine) or ""

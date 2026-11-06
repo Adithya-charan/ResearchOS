@@ -14,6 +14,7 @@ from api.config import Settings  # noqa: E402
 from api.corpus_service import injection_hits, safe_filename, UploadRejected  # noqa: E402
 from api.models import Run  # noqa: E402
 from tests.corpus_fixtures import build_library  # noqa: E402
+from tests.test_api import hold_running, release_job  # noqa: E402
 
 PW = "correct horse battery 42"
 QUESTION = "What percent accuracy was retained?"
@@ -233,15 +234,10 @@ def test_documents_cannot_change_while_a_run_is_executing(client, app, pdfs):
     pid = new_project(client, h)
     doc = upload(client, h, pid, "a.pdf", pdf_bytes(pdfs, "coral")).json()["document"]
     rid = client.post(f"/projects/{pid}/runs", json={"start": False}, headers=h).json()["id"]
-    gate = threading.Event()
-    t = threading.Thread(target=gate.wait, daemon=True)
-    t.start()
-    with app.state.sessionmaker() as db:
-        app.state.runtime._threads[db.get(Run, rid).engine_run_id] = t
+    hold_running(app, rid)
     assert client.delete(f"/projects/{pid}/documents/{doc['id']}", headers=h).status_code == 409
     assert client.post(f"/projects/{pid}/documents/{doc['id']}/reprocess", headers=h).status_code == 409
-    gate.set()
-    t.join()
+    release_job(app, rid)
     assert client.delete(f"/projects/{pid}/documents/{doc['id']}", headers=h).status_code == 204
 
 

@@ -15,6 +15,7 @@ from api.db import Base, make_engine, make_sessionmaker
 from api import migrate
 from api.corpus_service import CorpusManager, Scanner
 from api.experiments_service import ExperimentService
+from api.jobs import JobQueue, Worker
 from api.model_service import InferenceService, ModelRegistry, TrainingService
 from api.routes import approvals, auth, documents, experiments, models, projects, reports, runs, streams
 from api.runtime import EngineRuntime
@@ -43,7 +44,10 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
     settings = settings or Settings.from_env()
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI):
+        if settings.embedded_worker:
+            app.state.worker.start()  # also picks up jobs left queued by a previous process
         yield
+        app.state.worker.stop()  # running jobs are handed back, not lost
         app.state.training.stop_all()  # training children must not outlive the API: they checkpoint and exit, or are killed
 
     app = FastAPI(title="RESEARCHOS API", version="0.1.0", docs_url="/docs", redoc_url=None, lifespan=lifespan)
@@ -56,6 +60,8 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
     app.state.corpora = CorpusManager(settings, scanner)
     app.state.experiments = ExperimentService(settings, app.state.sessionmaker, sandbox_factory)
     app.state.runtime = EngineRuntime(settings, index_provider, app.state.corpora)
+    app.state.runtime.jobs = JobQueue(app.state.sessionmaker, settings, app.state.runtime.store)
+    app.state.worker = Worker(settings, app.state.runtime, app.state.runtime.jobs, app.state.sessionmaker)
     app.state.model_registry = ModelRegistry(settings, settings.data_dir / settings.training_dir_name)
     app.state.training = TrainingService(settings, app.state.sessionmaker, app.state.model_registry)
     app.state.inference = InferenceService(settings)

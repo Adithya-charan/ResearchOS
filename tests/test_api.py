@@ -63,6 +63,25 @@ def signed_in(c, email="alice@example.org"):
     return {"X-CSRF-Token": r.json()["csrf_token"]}
 
 
+def hold_running(app, run_id):
+    """Make a run look like it is executing: a running job whose lease is held by a (fake) live worker."""
+    from datetime import timedelta
+    from api.db import utcnow
+    from api.models import ResearchJob
+    with app.state.sessionmaker() as db:
+        r = db.get(Run, run_id)
+        db.add(ResearchJob(run_id=run_id, engine_run_id=r.engine_run_id, owner_id=r.owner_id, status="running", worker_id="test-holder",
+                           attempts=1, lease_expires_at=utcnow() + timedelta(hours=1)))
+        db.commit()
+
+
+def release_job(app, run_id):
+    from api.models import ResearchJob
+    with app.state.sessionmaker() as db:
+        db.query(ResearchJob).filter(ResearchJob.run_id == run_id).delete()
+        db.commit()
+
+
 def wait_done(c, run_id, h, timeout=60):
     end = time.time() + timeout
     while time.time() < end:
@@ -331,14 +350,9 @@ def test_active_run_quota(app):
         rt = a.state.runtime
         with a.state.sessionmaker() as db:
             e1 = db.get(Run, r1).engine_run_id
-        import threading
-        gate = threading.Event()
-        t = threading.Thread(target=gate.wait, daemon=True)
-        t.start()
-        rt._threads[e1] = t  # r1 counts as executing
+        hold_running(a, r1)  # r1 counts as executing (a job held by a live worker)
         assert c.post(f"/runs/{r2}/start", headers=h).status_code == 429
-        gate.set()
-        t.join()
+        release_job(a, r1)
         assert c.post(f"/runs/{r2}/start", headers=h).status_code == 200
         wait_done(c, r2, h)
 
@@ -357,15 +371,9 @@ def test_deleting_a_project_with_an_active_run_is_refused(client, app):
     h = signed_in(client)
     pid = client.post("/projects", json={"title": "P", "question": QUESTION}, headers=h).json()["id"]
     rid = client.post(f"/projects/{pid}/runs", json={"start": False}, headers=h).json()["id"]
-    import threading
-    gate = threading.Event()
-    t = threading.Thread(target=gate.wait, daemon=True)
-    t.start()
-    with app.state.sessionmaker() as db:
-        app.state.runtime._threads[db.get(Run, rid).engine_run_id] = t
+    hold_running(app, rid)
     assert client.delete(f"/projects/{pid}", headers=h).status_code == 409
-    gate.set()
-    t.join()
+    release_job(app, rid)
     assert client.delete(f"/projects/{pid}", headers=h).status_code == 204
 
 

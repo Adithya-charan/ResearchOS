@@ -140,3 +140,25 @@ class TrainingJob(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class ResearchJob(Base):
+    """The unit of work a worker claims: one per research run. Claiming is an atomic conditional UPDATE, so two workers (threads or
+    processes) can never execute the same run; a worker that stops heartbeating loses its lease and the job is re-queued."""
+    __tablename__ = "research_jobs"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: new_id("job"))
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), unique=True)
+    engine_run_id: Mapped[str] = mapped_column(String(64), index=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(10), default="queued", index=True)  # queued | running | paused | done | failed | cancelled
+    worker_id: Mapped[str] = mapped_column(String(80), default="")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)  # times a worker claimed it
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+    available_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)  # not claimable before this (retry backoff)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error: Mapped[str] = mapped_column(Text, default="")
+    enqueued_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    __table_args__ = (Index("ix_research_jobs_claim", "status", "available_at"),)

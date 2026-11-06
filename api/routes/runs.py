@@ -8,7 +8,7 @@ from agent_engine.reporting import report_from_store
 from api.deps import DB, CurrentAuth, audit
 from api.models import Project, Run
 from api.routes.projects import owned_project
-from api.runtime import NoCorpus
+from api.runtime import TERMINAL, NoCorpus
 from api.schemas import RunIn, RunOut
 
 router = APIRouter(tags=["runs"])
@@ -26,23 +26,20 @@ def _out(request: Request, r: Run) -> RunOut:
                   state=request.app.state.runtime.status(r.engine_run_id))
 
 
-def _active_count(request: Request, db, user_id: str) -> int:
-    rt = request.app.state.runtime
-    ids = db.scalars(select(Run.engine_run_id).where(Run.owner_id == user_id)).all()
-    return rt.active_count(list(ids))
-
-
-def _launch(request: Request, db, auth, r: Run) -> bool:
-    limit = request.app.state.settings.max_active_runs_per_user
-    if _active_count(request, db, auth.user.id) >= limit and not request.app.state.runtime.is_active(r.engine_run_id):
+def _launch(request: Request, db, auth, r: Run, force: bool = False) -> bool:
+    """Queue the run for a worker (the request never executes it). False if it is already queued/running or has finished."""
+    st = request.app.state
+    jobs = st.runtime.jobs
+    limit = st.settings.max_active_runs_per_user
+    if jobs.active_count(auth.user.id) >= limit and not jobs.is_active(r.engine_run_id):
         raise HTTPException(429, f"active run quota reached ({limit}); wait for a run to finish or cancel one")
-    try:
-        started = request.app.state.runtime.launch(r.engine_run_id, r.project_id)
-    except NoCorpus as e:
-        raise HTTPException(409, str(e)) from e
-    if started:
-        audit(db, request, "run_start", auth.user.id, r.id)
-    return started
+    if st.runtime.store.get_run(r.engine_run_id)["status"] in TERMINAL:
+        return False
+    queued = jobs.enqueue(r, force=force)
+    if queued:
+        audit(db, request, "run_queue", auth.user.id, r.id)
+        st.worker.ensure_started()
+    return queued
 
 
 @router.post("/projects/{project_id}/runs", status_code=201, response_model=RunOut)
@@ -98,6 +95,8 @@ def _control(request: Request, db, auth, run_id: str, action: str) -> RunOut:
     except RunStateError as e:
         raise HTTPException(409, str(e)) from e
     audit(db, request, f"run_{action}", auth.user.id, r.id)
+    if action == "cancel":
+        request.app.state.runtime.jobs.cancel_if_idle(r.engine_run_id)
     if action == "resume":
         _launch(request, db, auth, r)
     return _out(request, r)
@@ -124,10 +123,10 @@ def recover_run(run_id: str, request: Request, auth: CurrentAuth, db: DB):
     r = owned_run(db, run_id, auth.user.id)
     rt = request.app.state.runtime
     if rt.is_active(r.engine_run_id):
-        raise HTTPException(409, "run is still executing in this process")
+        raise HTTPException(409, "run is queued or executing on a worker")
     recovered = rt.controller().recover(r.engine_run_id)
     audit(db, request, "run_recover", auth.user.id, r.id, recovered=len(recovered))
-    _launch(request, db, auth, r)
+    _launch(request, db, auth, r, force=True)
     return _out(request, r)
 
 

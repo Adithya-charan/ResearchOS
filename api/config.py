@@ -47,6 +47,13 @@ class Settings:
     run_max_runtime_s: float = 900.0
     run_max_iterations: int = 4
     auto_migrate: bool = True  # apply Alembic migrations at startup; False = refuse to start unless already at head
+    # --- research job queue and worker
+    embedded_worker: bool = True  # run a worker thread inside the API process; set false when `scripts/run_worker.py` runs separately
+    worker_concurrency: int = 2  # runs one worker executes at the same time
+    job_poll_s: float = 0.25
+    job_lease_s: float = 30.0  # a worker must heartbeat within this window or its job is re-queued
+    job_max_attempts: int = 3  # claims per run (crashes, lease losses and unexpected errors each use one)
+    job_backoff_s: float = 2.0  # re-queue delay = backoff * 2**(attempt-1), capped at 60 s
     # --- models: registry, training jobs, inference
     models_dir: Path = ROOT / "artifacts" / "checkpoints"  # operator-trained checkpoints, read-only to the API (one run per sub-folder)
     tokenizer_dir: Path = ROOT / "artifacts" / "tokenizer"
@@ -82,6 +89,7 @@ class Settings:
         if "RESEARCHOS_DATA_DIR" in os.environ:
             s.data_dir = Path(os.environ["RESEARCHOS_DATA_DIR"])
         s.allow_weak_sandbox = _bool("RESEARCHOS_ALLOW_WEAK_SANDBOX", s.allow_weak_sandbox)
+        s.embedded_worker = _bool("RESEARCHOS_EMBEDDED_WORKER", s.embedded_worker)
         s.auto_migrate = _bool("RESEARCHOS_AUTO_MIGRATE", s.auto_migrate)
         s.training_enabled = _bool("RESEARCHOS_TRAINING_ENABLED", s.training_enabled)
         s.inference_device = os.environ.get("RESEARCHOS_INFERENCE_DEVICE", s.inference_device)
