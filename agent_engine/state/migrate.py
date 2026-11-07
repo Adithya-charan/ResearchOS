@@ -12,7 +12,9 @@ from alembic import command
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
+
+from agent_engine.state import dburl
 
 MIGRATIONS = Path(__file__).resolve().parent / "migrations"
 _LOCK = threading.Lock()  # Alembic script loading is not thread-safe; processes are serialised by SQLite itself (plus the retry below)
@@ -49,7 +51,19 @@ def _config(connection) -> Config:
     return cfg
 
 
+def _pg_engine(target: str, application: str):
+    url, schema = dburl.sqlalchemy_url(target)
+    return create_engine(url, connect_args=dburl.connect_options(schema, application)), schema
+
+
 def current_revision(path: str) -> str | None:
+    if dburl.is_postgres(path):
+        engine, _ = _pg_engine(path, "researchos-engine-check")
+        try:
+            with engine.connect() as conn:
+                return MigrationContext.configure(conn).get_current_revision()
+        finally:
+            engine.dispose()
     engine = create_engine(f"sqlite:///{path}")
     try:
         with engine.connect() as conn:
@@ -88,8 +102,41 @@ def _baseline_structure() -> dict:
         scratch.close()
 
 
+def _upgrade_postgres(target: str) -> str:
+    """PostgreSQL: one process at a time (advisory lock), the whole migration in one transaction (PostgreSQL DDL is transactional, so a
+    failure leaves the schema exactly as it was). A schema that has our tables but no migration history, or a revision newer than this
+    code, is refused rather than touched."""
+    from alembic.util.exc import CommandError
+
+    from agent_engine.state import pglock
+    with _LOCK, pglock.migration_lock(target, "engine"):
+        engine, schema = _pg_engine(target, "researchos-engine-migrate")
+        try:
+            if schema:
+                with engine.begin() as conn:
+                    conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+            with engine.begin() as conn:
+                tables = set(inspect(conn).get_table_names())
+                if "alembic_version" not in tables and tables & {"runs", "tasks", "projects", "events"}:
+                    raise SchemaMismatch("the engine database schema has tables but no migration history; it was not created by this "
+                                         "application's migrations, so it will not be altered. Use an empty schema or migrate it by hand")
+                try:
+                    command.upgrade(_config(conn), "head")
+                except CommandError as exc:
+                    if "locate revision" in str(exc):
+                        raise SchemaMismatch("the engine database is at a revision this version does not know "
+                                             "(written by newer code?)") from exc
+                    raise
+        finally:
+            engine.dispose()
+    return head_revision()
+
+
 def upgrade(path: str) -> str:
-    """Bring the database file at `path` to head; returns the resulting revision. Safe to call from several threads/processes."""
+    """Bring the database at `path` (a SQLite file or a PostgreSQL URL) to head; returns the resulting revision. Safe to call from
+    several threads and processes."""
+    if dburl.is_postgres(path):
+        return _upgrade_postgres(path)
     with _LOCK:
         for attempt in range(12):
             try:

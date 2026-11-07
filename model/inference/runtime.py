@@ -159,11 +159,13 @@ class ResearchOSModel:
         history = list(prompt)
         past = None
 
-        with torch.inference_mode():
-            for _ in range(budget):
-                if cancel_event is not None and cancel_event.is_set():
-                    yield matcher.flush(), "cancelled"
-                    return
+        # NOTE: inference_mode must never be held open across a `yield`: interleaved suspended generators would exit their
+        # contexts out of order and leave grad mode disabled in the thread. Each step enters and leaves it before yielding.
+        for _ in range(budget):
+            if cancel_event is not None and cancel_event.is_set():
+                yield matcher.flush(), "cancelled"
+                return
+            with torch.inference_mode():
                 if use_cache:
                     inp = ids if past is None else ids[:, -1:]
                     out = model(inp, past_key_values=past, use_cache=True, logits_to_keep=1)
@@ -180,17 +182,18 @@ class ResearchOSModel:
                     banned=DEFAULT_BANNED,
                     generator=gen,
                 )
-                if tok in stop_ids:
-                    yield matcher.flush(), "eos"
-                    return
-                history.append(tok)
-                ids = torch.cat([ids, torch.tensor([[tok]], device=self.device)], dim=1)
-                emit, stopped = matcher.push(tok)
-                if stopped:
-                    yield emit, "stop_sequence"
-                    return
-                if emit:
-                    yield emit, None
+                if tok not in stop_ids:
+                    ids = torch.cat([ids, torch.tensor([[tok]], device=self.device)], dim=1)
+            if tok in stop_ids:
+                yield matcher.flush(), "eos"
+                return
+            history.append(tok)
+            emit, stopped = matcher.push(tok)
+            if stopped:
+                yield emit, "stop_sequence"
+                return
+            if emit:
+                yield emit, None
         yield matcher.flush(), ("context" if out_of_context else "length")
 
     def stream(
@@ -265,6 +268,98 @@ class ResearchOSModel:
         if self.tokenizer is not None:
             result.text = self.tokenizer.decode(tokens)
         return result
+
+    def generate_batch(
+        self,
+        prompts: Sequence[Sequence[int]],
+        max_new_tokens: int = 64,
+        temperature: float = 0.0,
+        top_k: int = 40,
+        *,
+        top_p: float = 1.0,
+        repetition_penalty: float = 1.0,
+        seeds: Sequence[int | None] | None = None,
+        stop_token_ids: Sequence[int] = (EOS_ID,),
+        max_batch_size: int = 16,
+        cancel_event: threading.Event | None = None,
+    ) -> list[GenerationResult]:
+        """Generate for several prompts, batching those of **equal length** into one cached forward pass.
+
+        The model has no attention mask, so unequal-length prompts cannot share a batch without changing results (padding
+        would be attended to); they are grouped by length and each group is batched, which keeps every row's output
+        identical to `generate` for the same prompt and seed (tested). Stop *sequences* are not supported here, only stop
+        tokens. Results come back in input order.
+        """
+        model = self._require()
+        cfg = model.cfg
+        n = len(prompts)
+        if n == 0:
+            return []
+        if n > max_batch_size:
+            raise ValueError(f"batch of {n} exceeds max_batch_size={max_batch_size}")
+        seeds = list(seeds) if seeds is not None else [None] * n
+        if len(seeds) != n:
+            raise ValueError("seeds must have one entry per prompt")
+        for pr in prompts:
+            if not len(pr):
+                raise ValueError("prompt must contain at least one token")
+            if any(t < 0 or t >= cfg.vocab_size for t in pr):
+                raise ValueError("prompt contains token ids outside the model vocabulary")
+            if len(pr) >= cfg.max_seq_len:
+                raise ContextOverflowError(f"prompt has {len(pr)} tokens; model context is {cfg.max_seq_len}")
+        results: list[GenerationResult | None] = [None] * n
+        groups: dict[int, list[int]] = {}
+        for i, pr in enumerate(prompts):
+            groups.setdefault(len(pr), []).append(i)
+        stop_ids = set(stop_token_ids)
+        for length, members in groups.items():
+            t0 = time.perf_counter()
+            budget = min(max_new_tokens, cfg.max_seq_len - length)
+            out_of_context = budget < max_new_tokens
+            gens = []
+            for i in members:
+                g = torch.Generator(device="cpu")
+                g.manual_seed(seeds[i]) if seeds[i] is not None else g.seed()
+                gens.append(g)
+            ids = torch.tensor([list(prompts[i]) for i in members], dtype=torch.long, device=self.device)
+            history = [list(prompts[i]) for i in members]
+            produced: list[list[int]] = [[] for _ in members]
+            reason: list[str | None] = [None] * len(members)
+            past = None
+            with torch.inference_mode():
+                for _ in range(budget):
+                    if cancel_event is not None and cancel_event.is_set():
+                        for r in range(len(members)):
+                            reason[r] = reason[r] or "cancelled"
+                        break
+                    inp = ids if past is None else ids[:, -1:]
+                    out = model(inp, past_key_values=past, use_cache=True, logits_to_keep=1)
+                    past = out.past_key_values
+                    nxt = []
+                    for r in range(len(members)):
+                        if reason[r] is not None:
+                            nxt.append(EOS_ID)  # finished rows keep being fed a harmless token; their output is discarded
+                            continue
+                        tok = sample_next(out.logits[r, -1], temperature=temperature, top_k=top_k, top_p=top_p,
+                                          repetition_penalty=repetition_penalty, history=history[r],
+                                          banned=DEFAULT_BANNED, generator=gens[r])
+                        if tok in stop_ids:
+                            reason[r] = "eos"
+                            nxt.append(EOS_ID)
+                            continue
+                        produced[r].append(tok)
+                        history[r].append(tok)
+                        nxt.append(tok)
+                    ids = torch.cat([ids, torch.tensor(nxt, dtype=torch.long, device=self.device)[:, None]], dim=1)
+                    if all(x is not None for x in reason):
+                        break
+            elapsed = time.perf_counter() - t0
+            for r, i in enumerate(members):
+                res = GenerationResult(produced[r], reason[r] or ("context" if out_of_context else "length"), length, elapsed)
+                if self.tokenizer is not None:
+                    res.text = self.tokenizer.decode(produced[r])
+                results[i] = res
+        return results  # type: ignore[return-value]
 
     def generate_text(self, prompt: str, max_new_tokens: int = 256, **kwargs) -> GenerationResult:
         if self.tokenizer is None:

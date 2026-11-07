@@ -31,7 +31,7 @@ def main() -> int:
     settings = Settings.from_env()
     if args.concurrency:
         settings.worker_concurrency = args.concurrency
-    engine = make_engine(settings.database_url)
+    engine = make_engine(settings.database_url, settings.db_pool_size, settings.db_max_overflow)
     prepare_schema(engine, settings)
     sessions = make_sessionmaker(engine)
     runtime = EngineRuntime(settings, None, CorpusManager(settings, None))

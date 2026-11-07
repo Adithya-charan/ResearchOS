@@ -1,0 +1,4 @@
+Polymer electrolytes
+We measured ionic conductivity of a polymer electrolyte between 20 and 80 degrees.
+Conductivity increased with temperature in all samples.
+Samples were prepared in a dry room and measured by impedance spectroscopy.

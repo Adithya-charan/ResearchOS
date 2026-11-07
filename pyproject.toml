@@ -15,6 +15,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# PostgreSQL support: the driver for production, plus a pip-installable PostgreSQL server for the integration tests.
+postgres = ["psycopg[binary]>=3.1"]
+postgres-test = ["psycopg[binary]>=3.1", "pgserver>=0.1.4"]
 # Phase 7 PDF text extraction. AGPL-3.0 (or Artifex commercial). Keep <2: 2.x requires ML layout models.
 corpus = ["pymupdf>=1.28,<2"]
 api = ["fastapi>=0.115", "uvicorn>=0.30", "sqlalchemy>=2.0", "argon2-cffi>=23", "python-multipart", "httpx", "alembic", "reportlab"]
@@ -26,6 +29,7 @@ addopts = "-q -p no:cacheprovider"
 markers = [
     "gpu: test requires a CUDA device",
     "slow: test takes more than a few seconds",
+    "postgres: integration test against a real PostgreSQL server (pgserver or RESEARCHOS_TEST_POSTGRES_URL)",
 ]
 
 [tool.setuptools]

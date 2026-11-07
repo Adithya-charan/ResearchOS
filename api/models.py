@@ -234,3 +234,48 @@ class NoveltyAssessmentRow(Base):
     label: Mapped[str] = mapped_column(String(60))
     content: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class ModelEntry(Base):
+    """Lifecycle record of one model (a system checkpoint folder or a user's training job). The state is only ever changed through
+    `model.lifecycle.transition`, with evidence derived on the server from run and evaluation artifacts, never taken from a client."""
+    __tablename__ = "model_entries"
+    model_id: Mapped[str] = mapped_column(String(48), primary_key=True)  # sys_<name> | trn_<id>
+    owner_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    state: Mapped[str] = mapped_column(String(16), default="INITIALIZED", index=True)
+    stage_reached: Mapped[int] = mapped_column(Integer, default=0)  # measured agent-integration stage (agent_engine.model_provider)
+    evidence: Mapped[dict] = mapped_column(JSON, default=dict)
+    history: Mapped[list] = mapped_column(JSON, default=list)
+    evaluation: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # compact summary of the latest evaluation report
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class TrainingDataset(Base):
+    """A user-supplied text dataset: every document carries the rights statement the user made. Files live under the dataset's own
+    folder; `stats` records what the preparation step (clean, deduplicate, split by document, fit tokenizer on train) produced."""
+    __tablename__ = "training_datasets"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: new_id("dts"))
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    license: Mapped[str] = mapped_column(String(32))
+    attribution: Mapped[str] = mapped_column(String(300), default="")
+    status: Mapped[str] = mapped_column(String(12), default="uploaded", index=True)  # uploaded | preparing | prepared | failed
+    documents: Mapped[int] = mapped_column(Integer, default=0)
+    chars: Mapped[int] = mapped_column(Integer, default=0)
+    manifest_sha256: Mapped[str] = mapped_column(String(64), default="")
+    stats: Mapped[dict] = mapped_column(JSON, default=dict)
+    error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class ModelSelection(Base):
+    """Which agent provider a user's research runs use. Default (no row) = deterministic: no language model."""
+    __tablename__ = "model_selections"
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(20), default="deterministic")
+    model_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    mode: Mapped[str] = mapped_column(String(12), default="experimental")
+    allow_experimental: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)

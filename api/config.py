@@ -5,6 +5,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from agent_engine.state import dburl
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -16,7 +18,9 @@ def _bool(name: str, default: bool) -> bool:
 @dataclass
 class Settings:
     database_url: str = f"sqlite:///{(ROOT / 'artifacts' / 'api' / 'researchos.db').as_posix()}"
-    engine_db: Path = ROOT / "artifacts" / "api" / "engine.db"  # durable agent-engine state (tasks, events, approvals)
+    engine_db: Path | str = ROOT / "artifacts" / "api" / "engine.db"  # durable agent-engine state: a SQLite file, or a postgresql:// URL
+    db_pool_size: int = 10  # PostgreSQL only: connections kept per process
+    db_max_overflow: int = 20  # PostgreSQL only: extra connections allowed under load
     default_corpus_dir: Path = ROOT / "datasets" / "raw" / "synthetic_v1"  # until per-project document upload exists
     data_dir: Path = ROOT / "artifacts" / "api" / "data"  # per-project document libraries live under here
     demo_corpus: bool = False  # True: projects without documents search default_corpus_dir (synthetic demo text)
@@ -70,6 +74,15 @@ class Settings:
     infer_timeout_s: float = 30.0
     infer_per_minute: int = 20
     infer_cache_size: int = 2
+    # --- model lab: user datasets, evaluation, privileged actions
+    datasets_dir_name: str = "datasets"  # under data_dir: one folder per user dataset
+    dataset_max_docs: int = 200
+    dataset_max_doc_chars: int = 200_000
+    dataset_max_total_chars: int = 2_000_000
+    dataset_max_per_user: int = 10
+    dataset_max_vocab: int = 4096
+    eval_max_windows: int = 100
+    admin_emails: tuple[str, ...] = ()  # operators who may deploy models and change system models' lifecycle (RESEARCHOS_ADMIN_EMAILS)
     # --- server-sent events
     sse_max_streams_per_user: int = 4
     sse_max_streams_total: int = 16
@@ -82,8 +95,25 @@ class Settings:
     def from_env(cls) -> "Settings":
         s = cls()
         s.database_url = os.environ.get("RESEARCHOS_DATABASE_URL", s.database_url)
-        if "RESEARCHOS_ENGINE_DB" in os.environ:
+        if dburl.is_postgres(s.database_url):
+            # One server and one database, two schemas: the API and the engine both have tables called `runs` and `projects`, so they
+            # must not share a namespace. `?schema=` in a URL (or the two variables below) overrides the defaults.
+            api_schema = os.environ.get("RESEARCHOS_DATABASE_SCHEMA") or dburl.split_schema(s.database_url)[1] or "api"
+            s.database_url = dburl.with_schema(s.database_url, api_schema)
+            engine_url = os.environ.get("RESEARCHOS_ENGINE_DATABASE_URL")
+            if engine_url:
+                if not dburl.is_postgres(engine_url):
+                    raise ValueError("RESEARCHOS_ENGINE_DATABASE_URL must be a postgresql:// URL when RESEARCHOS_DATABASE_URL is one")
+                engine_schema = os.environ.get("RESEARCHOS_ENGINE_DATABASE_SCHEMA") or dburl.split_schema(engine_url)[1]
+            else:
+                engine_url, engine_schema = s.database_url, os.environ.get("RESEARCHOS_ENGINE_DATABASE_SCHEMA") or "engine"
+            s.engine_db = dburl.with_schema(engine_url, engine_schema)
+            if s.engine_db == s.database_url:
+                raise ValueError("the API and the engine need separate schemas or databases (their table names collide)")
+        elif "RESEARCHOS_ENGINE_DB" in os.environ:
             s.engine_db = Path(os.environ["RESEARCHOS_ENGINE_DB"])
+        s.db_pool_size = int(os.environ.get("RESEARCHOS_DB_POOL_SIZE", s.db_pool_size))
+        s.db_max_overflow = int(os.environ.get("RESEARCHOS_DB_MAX_OVERFLOW", s.db_max_overflow))
         if "RESEARCHOS_CORPUS_DIR" in os.environ:
             s.default_corpus_dir = Path(os.environ["RESEARCHOS_CORPUS_DIR"])
         if "RESEARCHOS_DATA_DIR" in os.environ:
@@ -93,6 +123,8 @@ class Settings:
         s.auto_migrate = _bool("RESEARCHOS_AUTO_MIGRATE", s.auto_migrate)
         s.training_enabled = _bool("RESEARCHOS_TRAINING_ENABLED", s.training_enabled)
         s.inference_device = os.environ.get("RESEARCHOS_INFERENCE_DEVICE", s.inference_device)
+        if "RESEARCHOS_ADMIN_EMAILS" in os.environ:
+            s.admin_emails = tuple(e.strip().lower() for e in os.environ["RESEARCHOS_ADMIN_EMAILS"].split(",") if e.strip())
         if "RESEARCHOS_MODELS_DIR" in os.environ:
             s.models_dir = Path(os.environ["RESEARCHOS_MODELS_DIR"])
         s.demo_corpus = _bool("RESEARCHOS_DEMO_CORPUS", s.demo_corpus)

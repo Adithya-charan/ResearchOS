@@ -39,6 +39,7 @@ def build_engine(
     experiments: tuple[Sandbox, Path] | None = None,
     catalog: Callable[[str], dict | None] | None = None,
     verifier: Callable[[str], tuple[bool, str]] | None = None,
+    role_policy=None,
     **engine_kwargs,
 ) -> ResearchEngine:
     """Supervisor + Discovery + Critic over a BM25 index (workflow="basic"), or the full research workflow
@@ -56,6 +57,6 @@ def build_engine(
     return ResearchEngine(
         store, registry, tools,
         policy or (full_policy(experiments=experiments is not None) if workflow == "full" else default_policy()),
-        model=ModelGateway(backend, store) if backend is not None else None,
+        model=ModelGateway(backend, store, role_policy) if backend is not None else None,
         resolver=IndexEvidenceResolver(index), **engine_kwargs,
     )

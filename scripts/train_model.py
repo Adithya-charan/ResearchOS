@@ -60,10 +60,18 @@ def main() -> None:
     else:
         lineage = new_lineage(model, rc.train.seed)
 
+    from model.common import canonical_json, sha256_bytes
+
+    dataset_fingerprint = sha256_bytes(canonical_json({
+        "manifest_sha256": data_meta["manifest_sha256"], "tokens": data_meta["tokens"], "tokenizer_fingerprint": tok.fingerprint,
+    }).encode("utf-8"))
     meta_base = {
         "run_name": rc.train.run_name,
         "lineage": lineage,
-        "tokenizer": {"fingerprint": tok.fingerprint, "vocab_size": tok.vocab_size},
+        "tokenizer": {"fingerprint": tok.fingerprint, "vocab_size": tok.vocab_size, "version": "researchos-bpe-v1",
+                      "pretokenizer": tok.pretokenizer},
+        "tokenizer_fingerprint": tok.fingerprint,
+        "dataset_fingerprint": dataset_fingerprint,
         "data": {
             "manifest_sha256": data_meta["manifest_sha256"],
             "tokens": data_meta["tokens"],

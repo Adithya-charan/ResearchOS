@@ -61,6 +61,25 @@ of "evidence follow-up" discovery, re-verification and a further review; it reco
 the dependency in the same transaction that creates the tasks. The Reviewer turns contradicted, unsupported, unverifiable and partially
 supported claims, and similar-prior-work novelty results, into findings.
 
+## Model integration (P8, see `docs/MODEL_OPERATIONS.md`)
+
+Every project runs on the **deterministic provider** unless its owner selects the custom Transformer in the Model Lab (`PUT
+/modellab/selection`). The selection is resolved when a run starts (`EngineRuntime.provider_resolver`): an eligible model becomes a
+`LocalBackend` plus a `RolePolicy`; an ineligible or unavailable one degrades to deterministic and the run records why. Eligibility is
+lifecycle-based (production needs DEPLOYED and measured stage >= 3; experimental needs the explicit opt-in).
+
+Role policy: with the custom provider selected, each of the nine roles (supervisor, discovery, literature, gap, hypothesis,
+experiment design, reviewer, verifier, synthesis) may attach one short draft note; the scheduler adds it for roles whose own code has no
+model hook (`auto_notes`). `ModelGateway.handle(agent_type)` refuses roles outside the policy. The sandbox `experiment` role is never
+model-driven.
+
+What a model note can and cannot do: it is stored as an **untrusted `ModelNote`**, labelled as a model draft, and `guard_model_text`
+drops any note containing citation-like or source-like text (bracketed numbers, author-year, DOIs, URLs, passage ids). Notes never
+enter claim extraction, citation resolution, verification verdicts, novelty assessment or the report's evidence sections; those
+remain deterministic. Disabling or losing the model changes nothing about the evidence outputs.
+
+Measured stage today: the bundled models reach stage 1 at most (see `docs/MODEL_EVALUATION.md`). Stages 4 and 5 are not enabled.
+
 ## What the agents are not
 
 They are lexical and extractive: BM25 retrieval, cue-word sentence classification, templated hypotheses and plans. Nothing is generated

@@ -11,7 +11,7 @@ WORKDIR /app
 # Dependencies first so source edits do not invalidate this layer. CPU PyTorch keeps the image small.
 RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 COPY pyproject.toml ./
-RUN pip install ".[api,corpus]"
+RUN pip install ".[api,corpus,postgres]"
 
 COPY model ./model
 COPY agent_engine ./agent_engine

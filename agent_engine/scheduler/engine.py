@@ -329,6 +329,18 @@ class ResearchEngine:
                         depends_on=row["depends_on"], iteration=row["iteration"], parent_task_id=row["parent_task_id"],
                         attempt=attempt, dependency_outputs=deps)
 
+    async def _role_note(self, ctx: AgentContext, role: str, out: AgentOutput) -> None:
+        """Optional draft note for roles whose own code has no model hook. Untrusted, budgeted, role-gated; the deterministic
+        output above is never altered by it."""
+        from agent_engine.model_provider import ROLE_PROMPTS
+
+        template = ROLE_PROMPTS.get(role)
+        if template is None:
+            return
+        note = await ctx.model_note(template.format(q=ctx.question[:200]), max_new_tokens=self.model.policy.max_new_tokens)
+        if note is not None:
+            out.model_notes.append(note)
+
     def _validate_output(self, raw: Any, spec: TaskSpec) -> AgentOutput:
         try:
             out = raw if isinstance(raw, AgentOutput) else AgentOutput.model_validate(raw)
@@ -380,10 +392,12 @@ class ResearchEngine:
                 run_id=run_id, project_id=rc.project_id, question=rc.question, limits=limits,
                 tools=self.tools.bind(row["agent_type"], self.policy, emit),
                 memory=self.memory.bind(rc.project_id, run_id, task_id, emit),
-                model=self.model.handle(run_id, limits.max_model_tokens, emit) if self.model and self.model.available else None,
+                model=self.model.handle(run_id, limits.max_model_tokens, emit, row["agent_type"]) if self.model and self.model.available else None,
                 _emit=emit,
             )
             raw = await asyncio.wait_for(agent.run(ctx, spec), timeout)
+            if ctx.model is not None and getattr(self.model.policy, "auto_notes", False) and isinstance(raw, AgentOutput)                     and not raw.model_notes:
+                await self._role_note(ctx, row["agent_type"], raw)
             out = self._validate_output(raw, spec)
         except asyncio.CancelledError:
             if not rc.abandon:

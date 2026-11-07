@@ -8,6 +8,7 @@ from pathlib import Path
 from model.common import atomic_write_json
 from model.data.cleaning import NearDuplicateIndex, clean_text, exact_hash, quality_check
 from model.data.dataset import write_token_file
+from model.data.leakage import assert_no_leakage
 from model.data.manifest import REQUIRED_USE, load_manifest, manifest_sha256, split_of, verify_manifest
 from model.tokenizer.bpe import DOC_ID, EOS_ID, BPETokenizer
 
@@ -23,6 +24,7 @@ class PrepareConfig:
     test_frac: float = 0.03
     near_dup_threshold: float = 0.8
     min_chars: int = 200
+    pretokenizer: str = "v1"  # "v2" keeps combining marks (Telugu/Indic) inside words; see model/tokenizer/bpe.py
 
 
 def prepare_dataset(cfg: PrepareConfig, log=print) -> dict:
@@ -61,6 +63,7 @@ def prepare_dataset(cfg: PrepareConfig, log=print) -> dict:
         splits[split_of(doc_id, cfg.val_frac, cfg.test_frac)].append((doc_id, text))
     if not splits["train"] or not splits["val"]:
         raise ValueError(f"corpus too small for a train/val split: { {k: len(v) for k, v in splits.items()} }")
+    assert_no_leakage(splits)  # independent re-check: no document or identical text in two splits
     log("documents per split: " + ", ".join(f"{k}={len(v)}" for k, v in splits.items()))
 
     # Tokenizer sees ONLY the training split, so validation/test text cannot influence it.
@@ -68,6 +71,7 @@ def prepare_dataset(cfg: PrepareConfig, log=print) -> dict:
         (t for _, t in splits["train"]),
         vocab_size=cfg.vocab_size,
         progress=lambda i, n: log(f"  bpe merges {i}/{n}"),
+        pretokenizer=cfg.pretokenizer,
     )
     tok.save(
         cfg.tokenizer_dir,
@@ -75,7 +79,9 @@ def prepare_dataset(cfg: PrepareConfig, log=print) -> dict:
             "trained_on_split": "train",
             "num_train_documents": len(splits["train"]),
             "manifest_sha256": manifest_sha256(records),
+            "corpus_sha256": (tok.training_info or {}).get("corpus_sha256"),
         },
+        sample_texts=(t for _, t in splits["train"][:50]),
     )
     log(f"tokenizer: vocab_size={tok.vocab_size} fingerprint={tok.fingerprint[:16]}")
 
@@ -95,6 +101,8 @@ def prepare_dataset(cfg: PrepareConfig, log=print) -> dict:
     meta = {
         "manifest_sha256": manifest_sha256(records),
         "tokenizer_fingerprint": tok.fingerprint,
+        "tokenizer_corpus_sha256": (tok.training_info or {}).get("corpus_sha256"),
+        "tokenizer_trained_on": "train split only",
         "vocab_size": tok.vocab_size,
         "tokens": counts,
         "documents": {k: len(v) for k, v in splits.items()},

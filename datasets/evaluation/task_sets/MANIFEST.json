@@ -1,0 +1,56 @@
+{
+  "authorship": "written for the RESEARCHOS project; all references, authors and numbers are fictional",
+  "license": "CC0-1.0",
+  "purpose": "smoke-level task probes; held out from every training corpus; NOT a benchmark",
+  "sets": {
+    "abstract_continuation": {
+      "description": "Prefix is the opening of an invented abstract; the closing sentence is scored.",
+      "file": "abstract_continuation.jsonl",
+      "items": 4,
+      "kind": "completion",
+      "sha256": "03b5e1c61fef3ef43592761f7f08b33afcf90df1fb206ca16636333f680e3492"
+    },
+    "citation_format": {
+      "description": "Sentences with citation markers. Every author, year and number is fictional; scores format handling only.",
+      "file": "citation_format.jsonl",
+      "items": 6,
+      "kind": "text",
+      "sha256": "d314bcb15c64fec02d512d39b473c3f1bd963230217386325bbcaec4b436dc98"
+    },
+    "general_lm": {
+      "description": "Plain English passages with no scientific vocabulary.",
+      "file": "general_lm.jsonl",
+      "items": 8,
+      "kind": "text",
+      "sha256": "1bfb157f331b2739df93e12388b46de8e9c6e09a545303ea4dd87d808733da96"
+    },
+    "research_question_completion": {
+      "description": "Prefix is the start of a research question; only the continuation is scored.",
+      "file": "research_question_completion.jsonl",
+      "items": 6,
+      "kind": "completion",
+      "sha256": "be81d67242f5630c4f5ec0e342c1311d3512ae4d9a57c40492c189cfbd07b6c5"
+    },
+    "research_terminology": {
+      "description": "Short definitions of research terms.",
+      "file": "research_terminology.jsonl",
+      "items": 6,
+      "kind": "text",
+      "sha256": "d17a6b8c55d8601b3498e1e3466c818e398c525970c41191decd3b81eae8e8cb"
+    },
+    "scientific_vocabulary": {
+      "description": "Sentences dense in scientific terms (invented statements, not facts).",
+      "file": "scientific_vocabulary.jsonl",
+      "items": 8,
+      "kind": "text",
+      "sha256": "81e9b18a21e21f4290b7301767481ce6cc62158eb5d0b49d54d314f203e45612"
+    },
+    "structured_output": {
+      "description": "Claim/status/evidence blocks in the format the platform's agents emit.",
+      "file": "structured_output.jsonl",
+      "items": 6,
+      "kind": "text",
+      "sha256": "db4d3eec357ce490e19dd36b02b685ce5d783003bfbcd4336418a24ef28c5ffa"
+    }
+  }
+}

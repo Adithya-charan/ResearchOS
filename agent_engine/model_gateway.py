@@ -46,16 +46,17 @@ class LocalBackend:
 class ModelGateway:
     """Serialises access to one backend (one generation at a time keeps GPU memory bounded)."""
 
-    def __init__(self, backend: TextBackend | None, store: Store):
+    def __init__(self, backend: TextBackend | None, store: Store, policy=None):
         self.backend, self.store = backend, store
+        self.policy = policy  # agent_engine.model_provider.RolePolicy | None; None = unrestricted (original behaviour)
         self._lock = threading.Lock()
 
     @property
     def available(self) -> bool:
         return self.backend is not None
 
-    def handle(self, run_id: str, token_limit: int, emit: Callable[[str, dict], None]) -> ModelHandle:
-        return ModelHandle(self, run_id, token_limit, emit)
+    def handle(self, run_id: str, token_limit: int, emit: Callable[[str, dict], None], agent_type: str | None = None) -> ModelHandle:
+        return ModelHandle(self, run_id, token_limit, emit, agent_type)
 
     def _generate_locked(self, prompt: str, max_new_tokens: int, seed: int) -> tuple[str, int]:
         with self._lock:
@@ -65,12 +66,17 @@ class ModelGateway:
 class ModelHandle:
     """A task's view of the gateway, bound to one run's token budget."""
 
-    def __init__(self, gateway: ModelGateway, run_id: str, token_limit: int, emit: Callable[[str, dict], None]):
+    def __init__(self, gateway: ModelGateway, run_id: str, token_limit: int, emit: Callable[[str, dict], None],
+                 agent_type: str | None = None):
         self._gw, self._run_id, self._limit, self._emit = gateway, run_id, token_limit, emit
+        self._agent_type = agent_type
 
     async def note(self, prompt: str, max_new_tokens: int = 48, seed: int = 0) -> ModelNote | None:
         gw = self._gw
         if gw.backend is None:
+            return None
+        if gw.policy is not None and not gw.policy.allows(self._agent_type):
+            self._emit("model_call_skipped", {"reason": "role_not_enabled", "agent_type": self._agent_type})
             return None
         prompt = prompt[:MAX_PROMPT_CHARS]
         try:
@@ -90,4 +96,10 @@ class ModelHandle:
         used = reserve - max_new_tokens + new_tokens  # prompt tokens + tokens actually generated
         gw.store.add_model_tokens(self._run_id, used - reserve)
         self._emit("model_call", {"prompt_chars": len(prompt), "tokens_used": used})
+        from agent_engine.model_provider import guard_model_text  # local import: model_provider imports this module
+
+        _, flags = guard_model_text(text)
+        if flags:  # the model cannot read the corpus, so citation-like text is invention: drop the whole note
+            self._emit("model_note_rejected", {"reason": "citation_like_text", "flags": flags[:4]})
+            return None
         return ModelNote(text=text.strip(), tokens_used=used)

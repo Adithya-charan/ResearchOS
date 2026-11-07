@@ -22,10 +22,17 @@ def run_migrations_online() -> None:
     if connection is not None:
         _run(connection)
         return
+    from api.db import make_engine
     url = config.get_main_option("sqlalchemy.url") or Settings.from_env().database_url
-    engine = create_engine(url)
+    engine = make_engine(url)  # same URL handling as the application (PostgreSQL schema, pool settings)
     with engine.connect() as conn:
+        schema = getattr(engine, "_researchos_schema", None)
+        if schema:
+            from sqlalchemy import text
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+            conn.commit()
         _run(conn)
+        conn.commit()
 
 
 if context.is_offline_mode():

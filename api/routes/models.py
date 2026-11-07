@@ -11,7 +11,7 @@ from api.deps import DB, CurrentAuth, audit
 from api.db import utcnow
 from api.model_service import (ACTIVE, FINISHED, NOTICE, RESUMABLE, SYSTEM_PREFIX, Busy, InferenceService, JobRefused, ModelNotFound,
                                ModelRegistry, TrainingService, describe, list_checkpoints, pick_checkpoint, read_metrics,
-                               read_samples, verify_checkpoint)
+                               read_samples, tokenizer_dir_for, verify_checkpoint)
 from api.models import TrainingJob, new_id
 from api.schemas import GenerateIn, TrainingJobIn
 
@@ -166,7 +166,8 @@ def generate(model_id: str, body: GenerateIn, request: Request, auth: CurrentAut
     try:
         ck = pick_checkpoint(run_dir, body.checkpoint)
         result = inference.generate(ck, body.prompt, body.max_new_tokens, body.temperature, body.top_k, body.top_p,
-                                    body.repetition_penalty, body.seed)
+                                    body.repetition_penalty, body.seed,
+                                    tokenizer_dir=tokenizer_dir_for(request.app.state.settings, run_dir))
     except ModelNotFound as e:
         raise HTTPException(404, str(e)) from e
     except Busy as e:
@@ -208,12 +209,21 @@ def start_job(body: TrainingJobIn, request: Request, auth: CurrentAuth, db: DB):
         raise HTTPException(429, f"training job quota reached ({s.max_training_jobs_per_user}); delete finished jobs")
     if training.running_count() >= s.max_running_training_jobs:
         raise HTTPException(429, "the training capacity of this server is in use; wait for the running job to finish")
-    overrides = body.model_dump(exclude={"name", "base_config"}, exclude_none=True)
+    overrides = body.model_dump(exclude={"name", "base_config", "dataset_id"}, exclude_none=True)
+    dataset_dir = None
+    if body.dataset_id:
+        from api.models import TrainingDataset
+        ds = db.get(TrainingDataset, body.dataset_id)
+        if ds is None or ds.owner_id != auth.user.id:
+            raise HTTPException(404, "dataset not found")
+        if ds.status != "prepared":
+            raise HTTPException(409, f"this dataset is {ds.status}; prepare it first")
+        dataset_dir = request.app.state.modellab.dataset_dir(ds.id)
     job = TrainingJob(id=new_id("trn"), owner_id=auth.user.id, name=body.name, base_config=body.base_config, config={}, status="running")
     job_dir = training.root / job.id
     try:
         job_dir.mkdir(parents=True)
-        job.config = training.build_config(body.base_config, overrides, job_dir)
+        job.config = training.build_config(body.base_config, overrides, job_dir, dataset_dir, body.dataset_id)
         job.segments = 1
         db.add(job)
         db.commit()

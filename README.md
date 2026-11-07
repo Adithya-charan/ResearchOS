@@ -32,6 +32,7 @@ sandboxed and reproducible experiments, and human review at every consequential 
 | Area | What exists (all covered by tests) |
 |---|---|
 | **Model** | Byte-level BPE tokenizer, decoder-only Transformer (RoPE / RMSNorm / SwiGLU / SDPA options, KV cache), training engine (AdamW, warmup + cosine, grad accumulation, bf16, atomic safetensors checkpoints, **bit-exact resume**, lineage proving descent from random init), sampling runtime with streaming, stop sequences and cancellation |
+| **Model Lab (P8)** | Browser UI at `/lab` over real API data: dataset upload with licence + rights confirmation, tokenizer preparation, training runs with live loss, checkpoint verification, evaluation against a random-initialised baseline, streaming inference, a lifecycle registry (INITIALIZED to DEPLOYED, evidence-gated) and an agent-provider switch. See [docs/MODEL_OPERATIONS.md](docs/MODEL_OPERATIONS.md) |
 | **Data** | Licence-checked manifests, cleaning, MinHash near-duplicate removal, document-level splits, synthetic CC0 corpus generator |
 | **Agents** | Typed contracts, deny-by-default policies, planner, asyncio scheduler (retries, timeouts, limits, pause / cancel, approval gate, crash recovery), SQLite run state, Supervisor / Discovery / Critic and the research workflow agents (Literature, Gap, Hypothesis, Verifier, Synthesis) |
 | **Corpus** | PDF / DOCX / TXT / Markdown / HTML ingestion in an isolated subprocess, page-aware passages, quality flags, BM25 search, verifiable citations back to the original page |
@@ -44,7 +45,7 @@ sandboxed and reproducible experiments, and human review at every consequential 
 ```mermaid
 flowchart LR
     U[Browser / client] -->|HTTPS + session cookie + CSRF| API[FastAPI service]
-    API --> DB[(SQLite: users, projects, reports, jobs)]
+    API --> DB[(SQLite or PostgreSQL: users, projects, reports, jobs)]
     API --> ENG[Agent engine<br/>scheduler + policies]
     ENG --> ST[(Run state / events)]
     ENG --> IDX[BM25 index over<br/>per-project corpus]
@@ -72,12 +73,22 @@ Design rules that the code enforces:
   It learns the structure and vocabulary of paper-like text, knows no real science, and must never be used as a source of facts.
 * Evidence checking is **lexical** (term overlap over BM25 hits). It finds and cites passages; it does not understand them or
   detect contradictions. Every report states that human review is required.
-* **The agents are deterministic and extractive**; the local Transformer is not yet wired into their text.
+* **The agents are deterministic and extractive.** Since P8 a project owner can opt in to the local Transformer, which then adds one
+  short, labelled, untrusted draft note per role (citation-like text is dropped; evidence, citations and verdicts stay deterministic). The
+  bundled models reach integration stage 1 at most (structured-output pass rate 0 of 8), no instruction-tuning data or run exists, and
+  production mode needs a DEPLOYED model at stage >= 3, so it is not available today.
+* **Model quality is not demonstrated.** `small_v1` beats a random-initialised baseline on its own held-out synthetic text (perplexity
+  about 1.5) and scores *worse* than that baseline on the seven small out-of-domain probes; about 81 % of its validation 8-grams occur in
+  its training text. No public benchmark was run and no comparison with any other model is made.
+* The Model Lab's training is an API-supervised subprocess, not the research job queue. The Model Lab UI was exercised in the in-app
+  browser and by static/contract tests, not by an automated browser suite.
 * Docker sandbox support is implemented but has **not been executed on the development machine** (Docker was unavailable).
   A clearly-labelled non-isolating subprocess fallback exists for development and must not be used for untrusted code.
 * No OCR (scanned pages are reported and skipped), no CSV ingestion, malware scanning is a hook only (reported as
   "not configured" unless you supply a scanner).
-* SQLite and in-process rate limiting only: one API process. Alembic migrations exist (SQLite-tested); no PostgreSQL / Redis support yet.
+* Both databases run on SQLite (default) or PostgreSQL (see [docs/DATABASE.md](docs/DATABASE.md); verified against a real PostgreSQL 16 server,
+  but the PostgreSQL compose file has not been run end to end because Docker is unavailable here). Rate limiting and SSE gates are still
+  in-process, so several API processes multiply those limits. No Redis.
 * The website is **not built**; the API is complete enough to drive one.
 
 Per-phase measurements and known limits are recorded in [docs/PHASE_REPORTS.md](docs/PHASE_REPORTS.md).
@@ -169,9 +180,22 @@ docker compose logs -f api
 * The port is bound to loopback. Put a TLS reverse proxy in front, then set `RESEARCHOS_COOKIE_SECURE=true`,
   `RESEARCHOS_ALLOWED_ORIGINS` and `RESEARCHOS_TRUSTED_PROXIES` (the proxy's address) so rate limiting sees real client IPs.
 * Operator checkpoints are mounted read-only from `./artifacts/checkpoints` (override with `RESEARCHOS_MODELS_PATH`).
-* **No PostgreSQL / Redis service is included** because the app does not use them yet, and **the Docker socket is deliberately not
+* The default compose file is the single-host SQLite setup (no Redis anywhere). **The Docker socket is deliberately not
   mounted**, so inside the container experiments are refused unless you set the non-isolating development fallback.
 * CI builds and runs the image; it has not been built on the author's machine (no Docker there).
+
+### PostgreSQL deployment
+
+```bash
+cp .env.example .env     # set POSTGRES_PASSWORD (no default exists; use URL-safe characters)
+docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+```
+
+Adds `postgres` (persistent volume, health check, no published port), a one-shot `migrate` service, `api` and a separate `worker`.
+Both databases live in one PostgreSQL database in two schemas (`api`, `engine`). To move an existing SQLite installation, stop the app and run
+`python scripts/migrate_database.py --to "$RESEARCHOS_DATABASE_URL" --api-db artifacts/api/researchos.db --engine-db artifacts/api/engine.db`
+(refuses a non-empty target, never alters the source). Without Docker: `pip install -e ".[postgres]"`, set `RESEARCHOS_DATABASE_URL=postgresql://…`,
+run `python scripts/migrate_db.py upgrade`, then the API and `python scripts/run_worker.py`.
 
 ## Configuration
 
@@ -179,18 +203,43 @@ All settings are environment variables prefixed `RESEARCHOS_` (see [`api/config.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `RESEARCHOS_DATABASE_URL` | local SQLite | API database |
+| `RESEARCHOS_DATABASE_URL` | local SQLite | API database; a `postgresql://` URL switches both databases to PostgreSQL (schemas `api` / `engine`) |
+| `RESEARCHOS_ENGINE_DATABASE_URL`, `RESEARCHOS_DATABASE_SCHEMA`, `RESEARCHOS_ENGINE_DATABASE_SCHEMA`, `RESEARCHOS_DB_POOL_SIZE`, `RESEARCHOS_DB_MAX_OVERFLOW` | see docs | PostgreSQL only: engine location, schema names, API pool |
 | `RESEARCHOS_DATA_DIR` | `artifacts/api/data` | per-project libraries, experiment runs, training jobs |
 | `RESEARCHOS_ALLOWED_ORIGINS` | `localhost:3000` | browser origins allowed to make unsafe requests |
 | `RESEARCHOS_COOKIE_SECURE` | `false` | set `true` behind TLS |
 | `RESEARCHOS_AUTO_MIGRATE` | `true` | apply Alembic migrations at startup; `false` = refuse to start unless the schema is at head |
 | `RESEARCHOS_EMBEDDED_WORKER` | `true` | run a research worker thread inside the API process; `false` = jobs wait for `python scripts/run_worker.py` (one or more separate processes) |
 | `RESEARCHOS_TRAINING_ENABLED` | `false` | let users start training jobs (uses host CPU/GPU) |
+| `RESEARCHOS_ADMIN_EMAILS` | empty | comma-separated accounts that may DEPLOY a model or change system models' lifecycle; empty = nobody can |
 | `RESEARCHOS_MODELS_DIR` | `artifacts/checkpoints` | operator checkpoints shown in the model registry |
 | `RESEARCHOS_INFERENCE_DEVICE` | `cpu` | device for local generation |
 | `RESEARCHOS_ALLOW_WEAK_SANDBOX` | `false` | permit the **non-isolating** fallback when Docker is unavailable (development only) |
 | `RESEARCHOS_TRUSTED_PROXIES` | `127.0.0.1` | addresses whose `X-Forwarded-For` is trusted |
 | `RESEARCHOS_DEMO_CORPUS` | `false` | let projects without documents search the synthetic demo corpus |
+
+## Web app (P9)
+
+A React + TypeScript single-page app lives in `frontend/` and is served by the API at `/app` (same origin, strict CSP). Build and open it:
+
+```bash
+cd frontend && npm ci && npm run build
+# then start the API as usual and browse to http://127.0.0.1:8000/app
+```
+
+Overview, projects, research workspace, agent command center, literature library (lexical search, not semantic), evidence verification, reports,
+and more. It uses only existing endpoints plus read-only `/overview` and `/audit`. Design and testing notes: `docs/UI_DESIGN_SYSTEM.md`,
+`docs/FRONTEND_ARCHITECTURE.md`, `docs/FRONTEND_API_INTEGRATION.md`, `docs/FRONTEND_TESTING.md`. Limits: no password change, gaps/hypotheses are
+derived from agent output, Model Lab is read-only; the Dockerfile does not build the frontend yet.
+
+## Model Lab (P8)
+
+Start the API and open `http://127.0.0.1:8000/lab`; sign in with an API account. Set `RESEARCHOS_TRAINING_ENABLED=true` to allow training
+from the UI and `RESEARCHOS_ADMIN_EMAILS` to name who may deploy. Same-origin writes from `/lab` work without extra origin settings.
+Measure your own hardware with `python scripts/bench_model.py` (writes `artifacts/evaluation/model_hardware.json`, shown in the lab).
+Details: [docs/CUSTOM_MODEL_ARCHITECTURE.md](docs/CUSTOM_MODEL_ARCHITECTURE.md), [TOKENIZER](docs/TOKENIZER.md),
+[TRAINING_PIPELINE](docs/TRAINING_PIPELINE.md), [INFERENCE_ENGINE](docs/INFERENCE_ENGINE.md), [MODEL_EVALUATION](docs/MODEL_EVALUATION.md),
+[MODEL_OPERATIONS](docs/MODEL_OPERATIONS.md).
 
 ## Testing and CI
 
@@ -212,7 +261,7 @@ path traversal, tamper detection, approval-bound execution). GitHub Actions runs
 | `research/` | BM25 index, document corpus, experiments + sandbox, knowledge graph, formal-check hook |
 | `api/` | FastAPI app, models, services, routes, SSE |
 | `scripts/` | CLI entry points |
-| `configs/` | training configurations (`tiny_cpu`, `small`) |
+| `configs/` | training configurations (`tiny_cpu`, `cpu_debug`, `small`, `consumer_medium`; the last three match the hardware profiles) |
 | `datasets/manifests/` | committed licence manifests (raw and processed data are git-ignored) |
 | `docs/` | measured per-phase results and known limits |
 | `tests/` | pytest suite |
@@ -223,7 +272,7 @@ Done: model pipeline, agent engine, corpus, research workflow, experiments, the 
 approvals, experiments, reports, models, SSE), Docker packaging and Alembic migrations.
 
 Next: PostgreSQL + Redis, the Next.js website, OCR and CSV ingestion,
-wiring the local model into agent text with budgets, single-task retry, SymPy / Z3 checks, a real licensed training corpus
+instruction-tuning data and a measured stage-3 evaluation for the local model, single-task retry, SymPy / Z3 checks, a real licensed training corpus
 (your decision), gVisor / Firecracker evaluation.
 
 ## Contributing, security reports, licence

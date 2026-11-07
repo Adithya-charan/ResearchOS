@@ -18,6 +18,7 @@ import uuid
 from datetime import timedelta
 
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 
 from agent_engine.contracts import RunStatus
 from api.db import utcnow
@@ -56,7 +57,11 @@ class JobQueue:
                 job = ResearchJob(run_id=run.id, engine_run_id=run.engine_run_id, owner_id=run.owner_id,
                                   max_attempts=self.settings.job_max_attempts)
                 db.add(job)
-                db.commit()
+                try:
+                    db.commit()
+                except IntegrityError:  # another process queued this run between our SELECT and INSERT (run_id is unique)
+                    db.rollback()
+                    return False
                 self._event(job, "job_queued", job_id=job.id)
                 return True
             revivable = job.status == "paused" or (force and job.status == "failed")
@@ -97,8 +102,13 @@ class JobQueue:
         now = utcnow()
         with self.sessions() as db:
             for _ in range(5):  # another worker may win the race for a candidate: look at the next one
-                cand = db.scalar(select(ResearchJob.id).where(ResearchJob.status == "queued", ResearchJob.available_at <= now)
-                                 .order_by(ResearchJob.available_at, ResearchJob.enqueued_at).limit(1))
+                pick = (select(ResearchJob.id).where(ResearchJob.status == "queued", ResearchJob.available_at <= now)
+                        .order_by(ResearchJob.available_at, ResearchJob.enqueued_at).limit(1))
+                if db.get_bind().dialect.name == "postgresql":
+                    # Lock the candidate row and skip rows other workers have locked, so concurrent workers each get a different job
+                    # instead of queueing behind one another. (SQLAlchemy ignores FOR UPDATE on SQLite.)
+                    pick = pick.with_for_update(skip_locked=True)
+                cand = db.scalar(pick)
                 if cand is None:
                     return None
                 won = db.execute(update(ResearchJob).where(ResearchJob.id == cand, ResearchJob.status == "queued")
@@ -134,12 +144,19 @@ class JobQueue:
                 self._event(job, "job_finished", status=status, error=error[:300])
             return r.rowcount == 1
 
-    def requeue(self, job_id: str, worker_id: str, reason: str, penalty: bool = True) -> str:
+    def requeue(self, job_id: str, worker_id: str, reason: str, penalty: bool = True, only_if_expired: bool = False) -> str:
         """Give a job back (shutdown, lost lease, crash). Returns the new status: queued, or failed once attempts are used up."""
         with self.sessions() as db:
-            job = db.get(ResearchJob, job_id)
+            # Lock the row for the whole decision: a heartbeat (a single UPDATE) then waits instead of renewing a lease we are
+            # about to take away, and two reapers cannot both requeue the same job.
+            job = db.scalar(select(ResearchJob).where(ResearchJob.id == job_id).with_for_update()
+                            .execution_options(populate_existing=True))
             if job is None or job.worker_id != worker_id or job.status != "running":
+                db.rollback()
                 return job.status if job else "gone"
+            if only_if_expired and not (job.lease_expires_at is not None and job.lease_expires_at < utcnow()):
+                db.rollback()  # the worker renewed its lease after we looked: it is alive
+                return "running"
             if not penalty:
                 job.attempts = max(0, job.attempts - 1)
             if job.attempts >= job.max_attempts:
@@ -161,10 +178,11 @@ class JobQueue:
             stale = db.scalars(select(ResearchJob).where(ResearchJob.status == "running", ResearchJob.lease_expires_at < now)).all()
             ids = [(j.id, j.worker_id) for j in stale]
         for jid, wid in ids:
-            status = self.requeue(jid, wid, "worker stopped heartbeating (lease expired)")
+            status = self.requeue(jid, wid, "worker stopped heartbeating (lease expired)", only_if_expired=True)
             if status == "failed":
                 self._fail_engine_run(jid)
-            n += 1
+            if status != "running":
+                n += 1
         return n
 
     def _fail_engine_run(self, job_id: str) -> None:

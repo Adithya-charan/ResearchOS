@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import random
+import time
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +47,14 @@ def atomic_write_text(path: str | Path, text: str) -> None:
         f.write(text)
         f.flush()
         os.fsync(f.fileno())
-    os.replace(tmp, path)
+    for attempt in range(6):  # Windows refuses to replace a file another process has open for a moment: retry briefly
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == 5:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def atomic_write_json(path: str | Path, obj: Any) -> None:

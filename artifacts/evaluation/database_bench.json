@@ -1,0 +1,115 @@
+{
+  "note": "single short runs on one machine, PostgreSQL over loopback; indicative only",
+  "sqlite": {
+    "store": {
+      "add_event": {
+        "n": 400,
+        "total_s": 0.9492,
+        "per_s": 421.4,
+        "ms_each": 2.373
+      },
+      "task_pending_to_running": {
+        "n": 200,
+        "total_s": 0.4455,
+        "per_s": 448.9,
+        "ms_each": 2.227
+      },
+      "task_running_to_succeeded": {
+        "n": 200,
+        "total_s": 0.4521,
+        "per_s": 442.4,
+        "ms_each": 2.261
+      },
+      "list_tasks_200": {
+        "n": 20,
+        "total_s": 0.1184,
+        "per_s": 169.0,
+        "ms_each": 5.918
+      },
+      "list_events_after_id": {
+        "n": 50,
+        "total_s": 0.1688,
+        "per_s": 296.3,
+        "ms_each": 3.375
+      },
+      "4_writers_x_100_events": {
+        "n": 400,
+        "total_s": 1.0214,
+        "per_s": 391.6
+      }
+    },
+    "queue": {
+      "enqueue": {
+        "n": 60,
+        "total_s": 0.9402,
+        "per_s": 63.8,
+        "ms_each": 15.67
+      },
+      "claim": {
+        "workers": 4,
+        "jobs": 60,
+        "claimed": 60,
+        "unique": 60,
+        "total_s": 1.39,
+        "median_claim_ms": 28.362,
+        "p95_claim_ms": 233.54
+      }
+    }
+  },
+  "postgresql": {
+    "store": {
+      "add_event": {
+        "n": 400,
+        "total_s": 0.5822,
+        "per_s": 687.1,
+        "ms_each": 1.455
+      },
+      "task_pending_to_running": {
+        "n": 200,
+        "total_s": 0.3287,
+        "per_s": 608.5,
+        "ms_each": 1.643
+      },
+      "task_running_to_succeeded": {
+        "n": 200,
+        "total_s": 0.2629,
+        "per_s": 760.8,
+        "ms_each": 1.314
+      },
+      "list_tasks_200": {
+        "n": 20,
+        "total_s": 0.0932,
+        "per_s": 214.6,
+        "ms_each": 4.659
+      },
+      "list_events_after_id": {
+        "n": 50,
+        "total_s": 0.3197,
+        "per_s": 156.4,
+        "ms_each": 6.393
+      },
+      "4_writers_x_100_events": {
+        "n": 400,
+        "total_s": 0.8438,
+        "per_s": 474.0
+      }
+    },
+    "queue": {
+      "enqueue": {
+        "n": 60,
+        "total_s": 0.2501,
+        "per_s": 239.9,
+        "ms_each": 4.169
+      },
+      "claim": {
+        "workers": 4,
+        "jobs": 60,
+        "claimed": 60,
+        "unique": 60,
+        "total_s": 0.5381,
+        "median_claim_ms": 28.102,
+        "p95_claim_ms": 43.597
+      }
+    }
+  }
+}

@@ -116,6 +116,7 @@ class TrainingJobIn(_In):
     eval_interval: int | None = Field(default=None, ge=1, le=100_000)
     checkpoint_interval: int | None = Field(default=None, ge=1, le=100_000)
     warmup_steps: int | None = Field(default=None, ge=0, le=100_000)
+    dataset_id: str | None = Field(default=None, pattern="^dts_[0-9a-f]{16}$")  # a prepared dataset of the caller's own
 
 
 class GenerateIn(_In):
@@ -127,3 +128,34 @@ class GenerateIn(_In):
     repetition_penalty: float = Field(default=1.0, ge=1.0, le=2.0)
     seed: int | None = Field(default=None, ge=0, le=2**31 - 1)
     checkpoint: str = Field(default="best", pattern="^(best|latest)$")
+
+
+class DatasetDocIn(_In):
+    title: str = Field(default="", max_length=120)
+    text: str = Field(min_length=1, max_length=200_000)  # the real ceiling is Settings.dataset_max_doc_chars
+
+
+class DatasetIn(_In):
+    name: str = Field(min_length=1, max_length=80)
+    license: str = Field(min_length=1, max_length=32)
+    attribution: str = Field(default="", max_length=300)
+    rights_confirmed: bool = False  # the uploader states they may train a model on this text
+    documents: list[DatasetDocIn] = Field(min_length=1, max_length=200)
+
+
+class PrepareIn(_In):
+    vocab_size: int = Field(default=1024, ge=262, le=4096)
+    pretokenizer: str = Field(default="v2", pattern="^(v1|v2)$")
+    min_chars: int = Field(default=100, ge=20, le=5000)
+
+
+class LifecycleIn(_In):
+    target: str = Field(min_length=1, max_length=16)
+    note: str = Field(default="", max_length=300)
+
+
+class SelectionIn(_In):
+    provider: str = Field(pattern="^(deterministic|custom_transformer)$")
+    model_id: str | None = Field(default=None, max_length=48, pattern="^(sys_[a-z0-9_]+|trn_[0-9a-f]+)$")
+    mode: str = Field(default="experimental", pattern="^(experimental|production)$")
+    allow_experimental: bool = False

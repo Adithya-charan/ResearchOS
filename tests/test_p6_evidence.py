@@ -676,12 +676,13 @@ def test_migration_0003_adds_the_claim_tables_without_touching_existing_data(tmp
     with e.begin() as conn:
         conn.execute(text("INSERT INTO users (id,email,password_hash,display_name,created_at,is_active) "
                           "VALUES ('usr_1','a@b.c','x','', '2026-01-01 00:00:00', 1)"))
-    assert migrate.upgrade(e) == migrate.head_revision() == "0003"
+    assert migrate.upgrade(e, "0003") == "0003"  # revision 0003 itself (later revisions are tested with their own phase)
     names = set(inspect(e).get_table_names())
     assert {"claims", "claim_evidence", "claim_verifications", "novelty_assessments", "users"} <= names
     with e.connect() as conn:
         assert conn.execute(text("SELECT COUNT(*) FROM users")).scalar() == 1
+    assert migrate.upgrade(e) == migrate.head_revision()
     assert migrate.schema_diff(e) == []  # the models and the migrations agree
     migrate.downgrade(e, "0002")
     assert "claims" not in set(inspect(e).get_table_names())
-    assert migrate.upgrade(e) == "0003"
+    assert migrate.upgrade(e, "0003") == "0003"

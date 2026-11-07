@@ -10,6 +10,8 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
+from agent_engine.state import dburl
+
 
 class Base(DeclarativeBase):
     pass
@@ -26,7 +28,17 @@ def _scratch_db() -> Path:
     return d / "app.db"
 
 
-def make_engine(url: str) -> Engine:
+def make_engine(url: str, pool_size: int = 10, max_overflow: int = 20, pool_timeout: float = 30.0) -> Engine:
+    """SQLite (files, or a throwaway file for `:memory:`) or PostgreSQL (`postgresql://...`, optional `?schema=name`).
+
+    PostgreSQL connections come from a bounded pool (`pool_size` + `max_overflow`); `pool_pre_ping` replaces connections the server
+    closed (restart, failover, idle timeout) before a request can use them, and `pool_recycle` retires old ones."""
+    if dburl.is_postgres(url):
+        sa_url, schema = dburl.sqlalchemy_url(url)
+        eng = create_engine(sa_url, pool_size=pool_size, max_overflow=max_overflow, pool_timeout=pool_timeout, pool_pre_ping=True,
+                            pool_recycle=1800, connect_args=dburl.connect_options(schema, "researchos-api"))
+        eng._researchos_schema = schema  # read by api.migrate (schema creation and the migration lock)
+        return eng
     kwargs: dict = {}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}

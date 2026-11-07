@@ -72,8 +72,9 @@ Legend: DONE = implemented and tested; PARTIAL = exists but differs from the req
 | Decoder-only Transformer, configurable sizes | DONE | |
 | Training (accumulation, clipping, bf16, checkpoints, exact resume, metrics, val loss/perplexity) | DONE | |
 | Inference (temperature, top-k/top-p, repetition penalty, KV cache, streaming, context management) | DONE | |
-| Untrained / partially trained / trained distinction | **PARTIAL** | the registry marks models by checkpoint and notice; there is **no explicit readiness state** (`untrained/partial/trained`) and no API-level "not ready for reliable research" gate. |
-| Model drives agent text | **MISSING (by design so far)** | agents are deterministic and extractive; the Transformer is not used to generate findings. This is honest for a 5M-parameter synthetic-trained model, but the requirement says agents should be model-powered "where applicable". |
+| Untrained / partially trained / trained distinction | **DONE (P8)** | explicit lifecycle INITIALIZED/TRAINING/TRAINED/VALIDATED/DEPLOYED/ARCHIVED/FAILED, evidence derived server-side from run artifacts; TRAINED needs a completed run, VALIDATED needs a finite validation loss beating a random-initialised baseline + clean leakage check, DEPLOYED needs an administrator. Migration 0004. |
+| Model drives agent text | **PARTIAL (P8, by design)** | provider switch (deterministic default; custom Transformer only by explicit selection), role policy for all nine roles, untrusted draft notes with a citation guard, measured stage 1-3 evaluation. Stages 4-5 not enabled; the bundled models reach stage 1 at most; evidence/citations/verdicts remain deterministic. |
+| Model Lab UI, evaluation suite, hardware profiles, benchmarks | **DONE (P8)** | `/lab` (12 sections), evaluation vs random baseline + 7 probe sets, CPU_DEBUG/CONSUMER_SMALL/CONSUMER_MEDIUM profiles with measured figures in `artifacts/evaluation/model_hardware.json`. Unit tested; hardware tested on an RTX 3050 6 GB; smoke trained (400 steps); not trained on real text. |
 
 ### Agents
 
@@ -185,3 +186,33 @@ restart) depends on runs executing outside the request process and surviving res
   integration with bounded evidence follow-up rounds; authenticated project-scoped claim, verification, novelty and structured-report
   endpoints. Evaluation is on a synthetic dataset only (18/18 on non-limitation cases, 0/3 on documented known limitations); no
   real-literature validation yet. Not semantic, not a proof. See `docs/EVIDENCE_VERIFICATION.md`.
+* P7 PostgreSQL support: implemented, **uncommitted** at the time of writing. Both layers (API: SQLAlchemy/Alembic 0001-0003; engine: raw
+  SQL `Store`/Alembic 0001-0002) run on SQLite or PostgreSQL; on PostgreSQL one database with two schemas (`api`, `engine`). Migrations are
+  advisory-locked, refuse unknown/newer schemas, run transactionally; `scripts/migrate_database.py` copies an existing SQLite installation
+  (source read-only, empty-target only, one transaction, row counts verified). Job claim uses `FOR UPDATE SKIP LOCKED`; lease reaping and
+  task/run transitions lock the row; events commit in id order per run. Verified against a real PostgreSQL 16 (pgserver): 42 dedicated
+  tests + 7 deployment tests, plus 387 existing tests re-run unchanged on PostgreSQL; full suite 773 passed. A latent bug in
+  `api/migrate.py` (the foreign-schema guard did nothing unless `api.models` happened to be imported) was found and fixed.
+  Not verified: the compose file end to end (no Docker here), PgBouncer, networked/production-scale performance. See `docs/DATABASE.md`.
+* P8 custom language model, tokenizer, training, inference, evaluation, provider integration and Model Lab: implemented, **uncommitted**
+  at the time of writing. Added the opt-in v2 pre-tokenizer and tokenizer manifests, three hardware profiles with a planning-only memory
+  estimator and a separate measurement path, run/summary records, a leakage gate, an evaluation suite (random baseline, 7 task probe sets,
+  train-overlap/memorisation flag, inference benchmark), a lifecycle state machine with server-derived evidence, a provider with production
+  vs explicit-experimental modes and a measured integration-stage evaluation, nine-role policy, user datasets with licence/rights
+  manifests, the `/modellab/*` API (migration 0004) and the `/lab` UI. Status by level: *implemented* and *unit tested* for all of the
+  above (171 new P8 tests; full suite **944 passed, 0 failed (773 before P8 + 171 new)**; the first full run exposed a real bug (a `torch.inference_mode()` context held open across `yield` in `ResearchOSModel._events` left grad mode disabled when streams interleave in one thread), fixed in `model/inference/runtime.py`); *hardware tested* on an RTX 3050 6 GB for all three profiles;
+  *smoke trained* (400-step `small` run, loss 7.84 -> 0.64, validation perplexity 1.87, 74 s); *experimentally evaluated* only `small_v1`
+  (its perplexity ~1.48 is on its own synthetic template text, 81 % 8-gram overlap with training; worse than the random baseline on all 7
+  out-of-domain probes). Not done: training on a real licensed corpus (your decision), any instruction-tuning data (so no stage 3), a
+  model of meaningful capability, an automated browser test of the UI, Docker/compose execution. See `docs/MODEL_OPERATIONS.md`.
+
+## P9 - web frontend and UI refresh (added)
+
+| Item | Status | Evidence / limit |
+|---|---|---|
+| Web app at `/app` (16 views, typed client, SSE, auth/CSRF) | **DONE (P9), uncommitted** | vitest 31, Playwright full-flow, axe A/AA scan light+dark, build/tsc/eslint clean |
+| `/overview`, `/audit`, `/app` serving | **DONE** | `tests/test_p9_web.py` (10 pass, 1 conditional skip); full backend 954 passed |
+| Reference-driven UI refresh | **DONE** | Linear article, Elicit, Readwise read; Semantic Scholar results page NOT studied (did not render) |
+| Manual a11y (keyboard, screen reader, zoom) and cross-browser | **NOT DONE** | automated axe only; Edge only |
+| Dockerfile builds the frontend | **NOT DONE** | `frontend/dist` must be built before running the API |
+| Gaps/hypotheses as stored entities, experiment creation UI, password change | **NOT AVAILABLE** | no API support; pages say so |

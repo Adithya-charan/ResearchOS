@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from api.deps import DB, CurrentAuth, audit
-from api.model_service import ACTIVE, NOTICE, Busy, ModelNotFound, pick_checkpoint
+from api.model_service import ACTIVE, NOTICE, Busy, ModelNotFound, pick_checkpoint, tokenizer_dir_for
 from api.routes.experiments import owned_experiment
 from api.routes.models import _resolve, _svc, admit_generation, owned_job
 from api.routes.runs import owned_run
@@ -138,7 +138,7 @@ async def stream_generate(model_id: str, body: GenerateIn, request: Request, aut
     try:
         try:
             ck = pick_checkpoint(run_dir, body.checkpoint)
-            rt = await anyio.to_thread.run_sync(inference.runtime_for, ck)
+            rt = await anyio.to_thread.run_sync(inference.runtime_for, ck, tokenizer_dir_for(s, run_dir))
             ids = [DOC_ID, *rt.tokenizer.encode(body.prompt)]
             if len(ids) >= rt.model.cfg.max_seq_len:
                 raise ContextOverflowError(f"prompt has {len(ids)} tokens; model context is {rt.model.cfg.max_seq_len}")

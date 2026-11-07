@@ -1,0 +1,36 @@
+description: >
+  CONSUMER_MEDIUM profile (~30M parameters at vocab 8192; RoPE, RMSNorm, SwiGLU): sized for a 6 GiB bf16 GPU. The bundled
+  synthetic corpus is far too small for this model to be meaningful; it needs a real, licensed corpus. Fit on a machine is only
+  claimed from a measurement (scripts/bench_model.py). Kept in step with model/profiles.py by tests/test_p8_model.py.
+model:
+  vocab_size: auto
+  max_seq_len: 512
+  d_model: 512
+  n_layers: 8
+  n_heads: 8
+  d_ff: 1536
+  dropout: 0.05
+  normalization: rmsnorm
+  positional_encoding: rope
+  mlp: swiglu
+  bias: false
+  tie_embeddings: true
+  attention_impl: sdpa
+training:
+  run_name: consumer_medium
+  seed: 42
+  batch_size: 4
+  grad_accum_steps: 8
+  max_steps: 3000
+  learning_rate: 0.0004
+  warmup_steps: 200
+  eval_interval: 250
+  eval_batches: 20
+  checkpoint_interval: 500
+  log_interval: 25
+  mixed_precision: auto
+  activation_checkpointing: true
+  early_stopping_patience: 6
+data:
+  processed_dir: datasets/processed/synthetic_v1
+  tokenizer_dir: artifacts/tokenizer

@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import contextlib
+import datetime as _dt
 import json
 import math
+import platform
 import time
+import traceback
+import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
@@ -15,6 +19,7 @@ from model.architecture.transformer import Transformer
 from model.common import atomic_write_json
 from model.data.dataset import TokenDataset
 from model.evaluation.metrics import evaluate_loss
+from model.training.memory import check_budget, estimate_training_memory, hardware_report
 from model.training.checkpoint import (
     load_optimizer_state,
     load_weights,
@@ -48,6 +53,9 @@ class TrainConfig:
     early_stopping_patience: int = 0  # evaluations without improvement; 0 disables
     device: str = "auto"
     max_nonfinite_steps: int = 5
+    max_memory_gb: float = 0.0  # >0: refuse to start if the estimated peak exceeds this; 0 = check against free device memory
+    max_epochs: float = 0.0  # >0: also stop after this many passes over the training tokens (0 disables)
+    enforce_memory_check: bool = True  # estimate before the first step and refuse an over-budget configuration
 
     @classmethod
     def from_dict(cls, data: dict) -> TrainConfig:
@@ -118,6 +126,26 @@ class Trainer:
         self.should_stop = should_stop  # cooperative pause/cancel: polled once per optimizer step, then a checkpoint is saved
         self.device = resolve_device(cfg.device)
         self.history: list[dict] = []
+        self.run_record: dict = {}
+        self.run_id = str(self.meta_base.get("run_id") or f"run_{uuid.uuid4().hex[:12]}")
+
+    def _now(self) -> str:
+        return _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
+
+    def _write_run_record(self, **fields_) -> None:
+        """run.json: machine-readable identity and state of this run, rewritten atomically at start and at every exit."""
+        self.run_record.update(fields_)
+        atomic_write_json(self.run_dir / "run.json", self.run_record)
+
+    @staticmethod
+    def _peak_ram_mb() -> float | None:
+        try:
+            import psutil
+
+            mi = psutil.Process().memory_info()
+            return getattr(mi, "peak_wset", mi.rss) / 2**20  # peak working set on Windows, current RSS elsewhere
+        except Exception:  # pragma: no cover
+            return None
 
     def _emit(self, record: dict) -> None:
         self.history.append(record)
@@ -132,11 +160,50 @@ class Trainer:
         atomic_write_json(self.run_dir / "train_config.json", asdict(cfg))
         model.to(device).train()
         model.gradient_checkpointing = cfg.activation_checkpointing
-        optimizer = build_optimizer(model, cfg, device)
         autocast, precision = make_autocast(device, cfg.mixed_precision)
         seq_len = self.train_data.seq_len
+        started_at, t_start = self._now(), time.perf_counter()
+        n_params = model.num_parameters()
+        epoch_tokens = int(len(self.train_data.tokens)) if hasattr(self.train_data, "tokens") else 0
+        est = estimate_training_memory(
+            model.cfg, cfg.batch_size, seq_len, mixed_precision=precision != "fp32",
+            activation_checkpointing=cfg.activation_checkpointing, device=device.type, params=n_params,
+        ) if hasattr(model, "cfg") else None
+        self.run_record = {
+            "run_id": self.run_id,
+            "run_name": cfg.run_name,
+            "status": "running",
+            "completion_state": None,
+            "started_at": started_at,
+            "finished_at": None,
+            "seed": cfg.seed,
+            "parameters": n_params,
+            "model_config": model.cfg.to_dict() if hasattr(model, "cfg") else None,
+            "train_config": asdict(cfg),
+            "optimizer": {"name": "AdamW", "lr": cfg.learning_rate, "betas": [cfg.beta1, cfg.beta2],
+                          "weight_decay": cfg.weight_decay, "grad_clip_norm": cfg.grad_clip_norm},
+            "tokenizer_fingerprint": self.meta_base.get("tokenizer_fingerprint"),
+            "dataset_fingerprint": self.meta_base.get("dataset_fingerprint") or self.meta_base.get("data_fingerprint"),
+            "precision": precision,
+            "device": str(device),
+            "hardware": hardware_report(),
+            "memory_estimate": est.to_dict() if est else None,
+            "software": {"torch": torch.__version__, "python": platform.python_version()},
+        }
+        if cfg.enforce_memory_check and est is not None:
+            budget = int(cfg.max_memory_gb * 2**30) if cfg.max_memory_gb > 0 else None
+            try:
+                check_budget(est, budget, label="this training configuration")
+            except Exception as exc:
+                self._write_run_record(status="failed", completion_state="refused_memory_budget", error=str(exc),
+                                       finished_at=self._now())
+                raise
+        self._write_run_record()
+        optimizer = build_optimizer(model, cfg, device)
 
         step, best_val, bad_evals, tokens_seen = 0, math.inf, 0, 0
+        first_loss: float | None = None
+        last_loss: float | None = None
         if resume is not None:
             ckpt = resolve_checkpoint(resume)
             meta = load_weights(model, ckpt)
@@ -218,6 +285,9 @@ class Trainer:
                     }
                     if device.type == "cuda":
                         rec["gpu_mem_mb"] = torch.cuda.max_memory_allocated() / 2**20
+                    if first_loss is None:
+                        first_loss = rec["loss"]
+                    last_loss = rec["loss"]
                     self._emit(rec)
                     self.log(
                         f"step {step:>6} | loss {rec['loss']:.4f} | lr {lr:.2e} | gnorm {rec['grad_norm']:.2f} "
@@ -246,6 +316,10 @@ class Trainer:
                     t_mark, steps_since_mark = time.perf_counter(), 0
                 if step % cfg.checkpoint_interval == 0 and step not in saved_steps:
                     save(step)
+                if cfg.max_epochs > 0 and epoch_tokens and tokens_seen / epoch_tokens >= cfg.max_epochs:
+                    stopped = "max_epochs"
+                    self.log(f"reached {cfg.max_epochs} epochs at step {step}")
+                    break
                 if self.should_stop is not None and self.should_stop():
                     stopped = "requested"
                     self.log(f"stop requested - checkpointing at step {step}")
@@ -253,9 +327,30 @@ class Trainer:
         except KeyboardInterrupt:
             stopped = "interrupted"
             self.log("interrupted - saving checkpoint")
+        except Exception as exc:
+            # The last periodic checkpoint is still on disk and resumable; record the failure instead of losing it.
+            self._write_run_record(
+                status="failed", completion_state="failed", finished_at=self._now(), steps=step,
+                duration_seconds=time.perf_counter() - t_start, error=f"{type(exc).__name__}: {exc}"[:2000],
+                traceback_tail=traceback.format_exc()[-2000:], last_checkpoint=str(last_ckpt) if last_ckpt else None,
+                tokens_seen=tokens_seen,
+            )
+            raise
         if step not in saved_steps:
             save(step)
+        completion = {
+            "max_steps": "completed", "early_stopping": "completed", "max_epochs": "completed",
+            "stop_at": "paused", "requested": "stopped_by_request", "interrupted": "interrupted",
+        }[stopped]
+        duration = time.perf_counter() - t_start
         summary = {
+            "run_id": self.run_id,
+            "completion_state": completion,
+            "started_at": started_at,
+            "finished_at": self._now(),
+            "duration_seconds": duration,
+            "initial_loss": first_loss,
+            "final_loss": last_loss,
             "steps": step,
             "stopped": stopped,
             "best_val_loss": None if math.isinf(best_val) else best_val,
@@ -266,5 +361,15 @@ class Trainer:
         }
         if device.type == "cuda":
             summary["peak_gpu_mem_mb"] = torch.cuda.max_memory_allocated() / 2**20
+        summary["peak_ram_mb"] = self._peak_ram_mb()
+        summary["tokens_per_sec_overall"] = tokens_seen / max(duration, 1e-9)
+        summary["epochs"] = (tokens_seen / epoch_tokens) if epoch_tokens else None
         atomic_write_json(self.run_dir / "summary.json", summary)
+        self._write_run_record(
+            status="finished" if completion == "completed" else completion, completion_state=completion,
+            finished_at=summary["finished_at"], steps=step, duration_seconds=duration, initial_loss=first_loss,
+            final_loss=last_loss, best_val_loss=summary["best_val_loss"], tokens_seen=tokens_seen,
+            last_checkpoint=summary["last_checkpoint"], peak_gpu_mem_mb=summary.get("peak_gpu_mem_mb"),
+            peak_ram_mb=summary["peak_ram_mb"], tokens_per_sec_overall=summary["tokens_per_sec_overall"],
+        )
         return summary

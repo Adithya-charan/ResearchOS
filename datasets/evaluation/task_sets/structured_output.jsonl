@@ -1,0 +1,6 @@
+{"id": "structured_output-00", "kind": "text", "text": "Claim C1: conductivity increased with temperature.\nStatus: supported.\nEvidence: doc-1, page 3.\n"}
+{"id": "structured_output-01", "kind": "text", "text": "Claim C2: the effect did not replicate.\nStatus: contradicted.\nEvidence: doc-2, page 7.\n"}
+{"id": "structured_output-02", "kind": "text", "text": "Claim C3: the sample size was sufficient.\nStatus: insufficient evidence.\nEvidence: none found.\n"}
+{"id": "structured_output-03", "kind": "text", "text": "Claim C4: the method generalizes.\nStatus: unverified.\nEvidence: doc-4, page 2.\n"}
+{"id": "structured_output-04", "kind": "text", "text": "Hypothesis H1: annealing raises conductivity.\nTest: measure five temperatures in triplicate.\nCriterion: slope above zero.\n"}
+{"id": "structured_output-05", "kind": "text", "text": "Limitation L1: only one instrument was used.\nImpact: results may not transfer.\n"}

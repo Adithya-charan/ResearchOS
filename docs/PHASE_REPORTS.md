@@ -644,3 +644,120 @@ Full description, thresholds and limits: `docs/EVIDENCE_VERIFICATION.md`. Not co
 * All numbered blueprint phases (1-9) are done. Remaining blueprint items: FastAPI service, Next.js website, auth, live agent graph. Phase 7-9 are exercised
   only on invented fixture PDFs; real papers (messier layouts) are untested until you add some.
 * **Decision for you:** PyMuPDF's AGPL licence (see Phase 7 limits) if this will ever be distributed or hosted.
+
+## Master prompt v2, P7 - PostgreSQL production database support (`agent_engine/state/`, `api/db.py`, `api/migrate.py`, `api/dbcopy.py`)
+
+Full description: `docs/DATABASE.md`, `docs/ARCHITECTURE.md`. Not committed.
+
+* **Two layers, two schemas.** The API database (SQLAlchemy models, Alembic 0001-0003) and the engine database (raw-SQL `Store`, Alembic
+  0001-0002) have different schemas and both contain tables named `runs` and `projects`. On PostgreSQL they live in one database, in schemas
+  `api` and `engine` (each with its own `alembic_version`); `?schema=`/env variables override, and a configuration that would make them share
+  a namespace is refused. SQLite stays the default and keeps working unchanged.
+* **Engine store on PostgreSQL:** psycopg 3 backend behind the same `Store` API (placeholder translation, identity ids via `RETURNING`,
+  `FOR UPDATE` on read-then-write paths, per-run advisory lock for event order, connection health check/reconnect, `StoreUnavailable` instead
+  of silent write retries). The same change makes status-transition checks atomic on SQLite too (they were check-then-write before).
+* **API on PostgreSQL:** bounded pooled engine, `pool_pre_ping`, schema through `search_path`; job claim `FOR UPDATE SKIP LOCKED`; lease reaping
+  re-checks the lease under a row lock (a worker that renewed in time is not requeued); duplicate enqueue race handled.
+* **Migrations:** advisory-locked, transactional, refuse unversioned look-alike schemas and newer revisions; `scripts/migrate_db.py upgrade|check`;
+  `scripts/migrate_database.py` copies an existing SQLite installation (source read-only, empty target only, one transaction per database,
+  row counts verified, sequences advanced).
+* **Deployment:** `docker-compose.postgres.yml` (postgres with volume + health check + no published port, one-shot migrate, api, worker),
+  `.env.example`, Dockerfile installs the driver, CI job with a `postgres:16` service. No credentials in files; the compose file refuses to start without
+  `POSTGRES_PASSWORD`.
+* **Test environment:** PostgreSQL 16.2 (x86_64 MinGW build) started by the `pgserver` pip package on a local TCP port, psycopg 3.3.8, SQLAlchemy 2.1.8,
+  Alembic 1.20.1, Windows 11. Docker not available.
+* **Tests:** `tests/test_p7_postgres.py` 42 and `tests/test_p7_deploy.py` 7 (fresh migration, models/migration agreement, both layers coexisting,
+  foreign/newer schema refusal with data untouched, failed-migration rollback, 5-process concurrent startup per layer, round trip and restart,
+  rollback, duplicate ids, concurrent transitions/run numbers/token budget/approvals, event order with a polling reader, connection loss and
+  cleanup, concurrent claims across 6 independent engines, concurrent enqueue, lease/heartbeat/expiry/give-up, reaper races, killed-worker
+  recovery, engine crash recovery, claims/evidence/verification/report persistence and cascade, concurrent API writes, HTTP restart persistence and
+  cross-project isolation, SQLite->PostgreSQL copy incl. refusal and rollback cases). **Existing tests re-run on PostgreSQL unchanged
+  (`RESEARCHOS_TEST_ON_POSTGRES=1`): 387 passed** (140 engine/agent + 247 API/agent/P5/P6); one SQLite-specific test (it asserts `sqlite3.IntegrityError`) is
+  deselected there and has a PostgreSQL equivalent. **Full suite: 773 passed, 1 warning, exit code 0 (432 s)** (724 before P7).
+* **Defects found and fixed:** `api/migrate.py`'s unversioned-schema guard compared against `Base.metadata`, which is empty unless `api.models` was imported, so
+  a standalone migration run would have tried to create tables over a foreign schema; an interrupted `BEGIN` on a dead PostgreSQL connection surfaced a raw driver
+  error instead of `StoreUnavailable`; two assumptions in new tests (event contents, response shape).
+* **Performance (indicative, one laptop, loopback):** `docs/DATABASE.md` table; PostgreSQL ahead on writes and on claim tail latency (p95 44 ms vs 234 ms with
+  4 contending workers), slower on `list_events(after_id)` over a socket.
+* **Not verified / remaining:** compose files not run end to end (no Docker); PgBouncer; production-scale or networked performance; lease clocks use the app clock;
+  offline-only SQLite->PostgreSQL copy; per-process rate limiter and SSE gates.
+
+## Master prompt v2, P8 - custom language model, training, inference, evaluation, agent integration and Model Lab (`model/`, `agent_engine/model_provider.py`, `api/modellab_service.py`, `api/static/lab/`)
+
+Full description: `docs/CUSTOM_MODEL_ARCHITECTURE.md`, `TOKENIZER.md`, `TRAINING_PIPELINE.md`, `INFERENCE_ENGINE.md`, `MODEL_EVALUATION.md`,
+`MODEL_OPERATIONS.md`. Not committed.
+
+**Status by level.** Implemented and unit tested: everything below. Smoke tested: the trainer, pipeline and checkpoints (400-step run).
+Hardware tested: all three profiles on the machine below. Successfully trained: `small_v1` (3,000 steps, synthetic corpus) and the P8 smoke
+run (400 steps). Experimentally evaluated: `small_v1` only. No model has been trained on real text.
+
+**Hardware used.** Windows 11, Python 3.11, torch 2.14.0+cu130, Intel i7-13700H (20 logical CPUs), 15.7 GB RAM (about 1.5 GB free during
+the runs), NVIDIA RTX 3050 6 GB laptop GPU (bf16 supported). No Docker.
+
+**What was built.**
+
+* Tokenizer: opt-in `v2` pre-tokenizer (combining marks stay inside words; v1 and every earlier fingerprint unchanged), corpus fingerprint,
+  vocabulary statistics, hash-listing `manifest.json`, `batch_encode/batch_decode`.
+* Data: independent leakage gate (same id or identical text across splits aborts preparation).
+* Model: three hardware profiles; a planning-only memory estimator (`basis: "estimate"`) kept separate from `measure_profile`
+  (`basis: "measurement"`); trainer memory gate, `max_epochs`, run/summary records (`completion_state`, duration, initial/final loss, peak RAM).
+* Inference: `generate_batch` (equal-length prompts only; each row identical to the single-prompt result).
+* Evaluation suite: validation/test vs a random-initialised baseline of the same architecture, 7 small CC0 probe sets (4-8 items, fictional
+  references), train-overlap/memorisation flag, inference benchmark, agent-integration stage checks.
+* Lifecycle: evidence-gated state machine; VALIDATED bound to the evaluated checkpoint's SHA-256; DEPLOYED needs an administrator.
+* Provider: deterministic default; custom Transformer by explicit selection only (production = DEPLOYED + stage >= 3, or explicit
+  experimental); role policy for the nine roles; untrusted draft notes with a citation guard; no hosted API anywhere.
+* API/UI: `/modellab/*` (migration 0004: `model_entries`, `training_datasets`, `model_selections`), user datasets with licence/attribution/rights
+  confirmation and quotas, and the 12-section Model Lab at `/lab` (whitelisted static files, CSP `default-src 'self'`).
+
+**Measured results (this machine; `artifacts/evaluation/model_hardware.json`, `p8_smoke_training.json`).**
+
+| Profile (device) | Parameters | Init | Training tok/s (micro-batch) | Peak GPU | Inference tok/s (cached / uncached) | Checkpoint (fp32) |
+|---|---|---|---|---|---|---|
+| CPU_DEBUG (cpu) | 136,960 | 0.03 s | 6,870 | - | 251 / 189 | 0.52 MiB |
+| CONSUMER_SMALL (cuda, bf16) | 5,853,184 | 0.29 s | 51,442 | 555 MiB | 184 / 205 | 22.3 MiB |
+| CONSUMER_MEDIUM (cuda, bf16, checkpointing) | 31,465,984 | 0.74 s | 3,037 | 693 MiB | 25 / 26 | 120 MiB |
+
+On the GPU the KV cache gives no speed-up for these small models (kernel-launch bound); on CPU it does (1.33x for CPU_DEBUG). The memory
+estimates (1.08 and 1.39 GiB) were above the measured peaks, i.e. conservative.
+
+P8 smoke training (`small` config, 400 steps, bf16): loss 7.84 -> 0.64, validation perplexity 1.87, 74 s, 44,068 tok/s overall, peak GPU
+482 MiB, peak RAM 1.55 GB, 0.70 epochs of the synthetic corpus. `small_v1` (3,000 steps): validation loss 0.387, perplexity 1.47.
+
+Evaluation of `small_v1` through the Model Lab: validation loss 0.389 (ppl 1.476) vs random baseline 7.839; test loss 0.383; 81 % of
+validation 8-grams also occur in training (memorisation flagged; template corpus); all seven probe sets score worse than the random baseline
+(loss 9-12 vs about 7.8); structured-output pass rate 0/8, so integration stage 1; cached generation 51 tok/s on CPU (19.6 ms/token, 2.25x
+faster than uncached); checkpoint 65 MB (with optimizer state).
+
+**Tests.** 171 new: tokenizer 18, model/profiles/lifecycle/leakage/memory 33, inference/evaluation 44, provider/agent integration 49, API 18,
+frontend 9 (static serving, CSP, whitelist and traversal, no external URLs or unsafe DOM sinks, 12 sections, every UI call matches a real
+route, same-origin vs cross-site writes). One P6 migration test was updated for revision 0004. Full suite: **944 passed, 0 failed (773 before P8 + 171 new)**; the first full run exposed a real bug (a `torch.inference_mode()` context held open across `yield` in `ResearchOSModel._events` left grad mode disabled when streams interleave in one thread), fixed in `model/inference/runtime.py`.
+
+**Defects found and fixed during P8.** Windows atomic-replace race (`PermissionError` retry in `atomic_write_text`), evaluation reading a
+report while it was being replaced, `dataset_fingerprint` missing from run metadata, a duplicate-account assumption in tests, the unsafe-method
+middleware refusing the lab's own same-origin writes, a JavaScript syntax slip (unquoted `Pre-tokenizer` key) caught by `node --check`.
+
+**Known limitations / not done.** No training on a real licensed corpus (your decision); the bundled corpus is synthetic templates; no
+instruction-tuning data, so integration stage 3 is unreachable and production mode unavailable; stages 4-5 not enabled; batching only for equal-length
+prompts; training is an API-supervised subprocess (not the research job queue, not distributed); the probe sets are tiny smoke checks, no public benchmark was
+run and no comparison with other models is made; the Model Lab UI was checked by hand in the in-app browser and by contract tests (an
+evaluation run showed one transient "Failed to fetch" while the pane was hidden; the report completed and re-reads correctly), not by an
+automated browser suite; Docker/compose never executed; no external security review.
+
+## Master prompt v2, P9 - web frontend and reference-driven UI refresh (`frontend/`, `api/routes/overview.py`, `api/app.py`)
+
+**Status: implemented, uncommitted.** Vite + React + TypeScript single-page app served at `/app` by the API (same origin, strict CSP). 16 views, typed
+API client (in-memory CSRF token, no tokens in storage), TanStack Query, fetch-based SSE with resume. Two read-only endpoints were added: `GET /overview`
+and `GET /audit` (caller's own entries). Docs: `FRONTEND_ARCHITECTURE.md`, `UI_DESIGN_SYSTEM.md`, `FRONTEND_API_INTEGRATION.md`, `FRONTEND_TESTING.md`.
+
+**UI refresh** (principles from Linear's refresh article, Elicit, Readwise Reader; Semantic Scholar's results page could not be read, so its layout was not
+studied): dimmed compact shell, hairline borders, no shadows, light/dark tokens, workspace with a status aside, agent graph with a details panel, library
+search with filters and citation lines, three-pane evidence view, serif reading layout with citation panel and adjustable size.
+
+**Evidence of testing (this machine):** build, `tsc --noEmit` and `eslint .` clean; vitest 31/31; Playwright full-flow against a real backend passes; axe
+WCAG 2 A/AA scan of all 16 routes in light and dark: no serious/critical violations; screenshots at 1440/820/390 show no horizontal overflow; backend
+suite **954 passed, 1 skipped** (944 before + 10 new in `tests/test_p9_web.py`; the skip is the "app not built" case, which only runs when `frontend/dist` is absent).
+
+**Not done / limits:** no password change (no endpoint); gaps, hypotheses and experiment plans are derived read-only from agent outputs, not stored; no
+experiment-creation UI; Model Lab is read-only (P8 training stays postponed); manual keyboard/screen-reader/cross-browser checks not performed; no
+component tests for Workspace/Evidence/Library/Reports beyond e2e; `npm audit` not reviewed; the Dockerfile does not yet build the frontend.

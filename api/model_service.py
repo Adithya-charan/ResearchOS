@@ -145,6 +145,22 @@ def verify_checkpoint(ckpt: Path) -> dict:
     return {"ok": True, "model_sha256": actual, "step": meta.get("step"), "lineage_root": meta["lineage"]["root"]}
 
 
+def tokenizer_dir_for(settings: Settings, run_dir: Path) -> Path:
+    """The tokenizer a model must be served with. Operator models use the operator tokenizer; a model trained on a user dataset
+    uses that dataset's own tokenizer (found only inside the managed datasets folder, never from a path in a request)."""
+    try:
+        ck = pick_checkpoint(run_dir, "best")
+    except ModelNotFound:
+        return settings.tokenizer_dir
+    processed = ((_read_json(ck / "meta.json") or {}).get("data") or {}).get("processed_dir")
+    if processed:
+        root = (settings.data_dir / settings.datasets_dir_name).resolve()
+        p = Path(processed).resolve()
+        if root in p.parents and (p.parent / "tokenizer" / "merges.txt").is_file():
+            return p.parent / "tokenizer"
+    return settings.tokenizer_dir
+
+
 # ------------------------------------------------------------------ registry
 class ModelRegistry:
     def __init__(self, settings: Settings, training_root: Path):
@@ -190,7 +206,7 @@ class TrainingService:
                         "defaults": {k: t.get(k) for k in sorted(OVERRIDABLE)}, "device": t.get("device", "auto")})
         return out
 
-    def build_config(self, base: str, overrides: dict, job_dir: Path) -> dict:
+    def build_config(self, base: str, overrides: dict, job_dir: Path, dataset_dir: Path | None = None, dataset_id: str | None = None) -> dict:
         path = self.settings.train_configs_dir / f"{base}.yaml"
         if not NAME_RE.match(base) or not path.is_file():
             raise JobRefused(f"unknown base config '{base}'", 422)
@@ -211,6 +227,15 @@ class TrainingService:
         raw["training"] = training
         data = dict(raw.get("data", {}))
         data["checkpoint_root"] = str(job_dir)  # checkpoints land inside the job folder, never next to operator checkpoints
+        if dataset_dir is not None:  # a prepared dataset of the caller's own: its processed data and ITS tokenizer
+            meta = _read_json(dataset_dir / "processed" / "meta.json") or {}
+            seq = int(raw["model"]["max_seq_len"])
+            toks = meta.get("tokens") or {}
+            if toks.get("train", 0) < seq + 2 or toks.get("val", 0) < seq + 2:
+                raise JobRefused(f"this dataset is too small for a context of {seq} tokens (train {toks.get('train', 0)}, "
+                                 f"validation {toks.get('val', 0)}); add documents or choose a config with a shorter context", 422)
+            data["processed_dir"] = str(dataset_dir / "processed")
+            data["tokenizer_dir"] = str(dataset_dir / "tokenizer")
         raw["data"] = data
         try:  # validate exactly as the trainer will
             from model.training.run_config import load_run_config
@@ -223,6 +248,8 @@ class TrainingService:
         except (ValueError, TypeError, KeyError) as e:
             raise JobRefused(f"invalid training configuration: {e}", 422) from e
         (job_dir / "config.yaml").write_text(yaml.safe_dump(raw, sort_keys=True), encoding="utf-8")
+        if dataset_id:
+            training = {**training, "dataset_id": dataset_id}
         return training
 
     # -- process control -----------------------------------------------
@@ -338,27 +365,28 @@ class InferenceService:
         self._cache_lock = threading.Lock()
         self._gen = threading.Semaphore(1)
 
-    def _runtime(self, ckpt: Path):
+    def _runtime(self, ckpt: Path, tokenizer_dir: Path | None = None):
         from model.inference import ResearchOSModel
         meta = _read_json(ckpt / "meta.json")
         if meta is None:
             raise ModelNotFound("checkpoint metadata is missing")
-        key = (str(ckpt.resolve()), str(meta.get("model_sha256")))
+        tok_dir = tokenizer_dir or self.settings.tokenizer_dir
+        key = (str(ckpt.resolve()), str(meta.get("model_sha256")), str(Path(tok_dir).resolve()))
         with self._cache_lock:
             rt = self._cache.get(key)
             if rt is not None:
                 self._cache.move_to_end(key)
                 return rt
         rt = ResearchOSModel(device=self.settings.inference_device)
-        rt.load_checkpoint(ckpt, tokenizer_dir=self.settings.tokenizer_dir)  # verifies weights hash and tokenizer fingerprint
+        rt.load_checkpoint(ckpt, tokenizer_dir=tok_dir)  # verifies weights hash and tokenizer fingerprint
         with self._cache_lock:
             self._cache[key] = rt
             while len(self._cache) > max(1, self.settings.infer_cache_size):
                 self._cache.popitem(last=False)
         return rt
 
-    def runtime_for(self, ckpt: Path):
-        return self._runtime(ckpt)
+    def runtime_for(self, ckpt: Path, tokenizer_dir: Path | None = None):
+        return self._runtime(ckpt, tokenizer_dir)
 
     def acquire_slot(self, timeout: float = 5.0) -> None:
         if not self._gen.acquire(timeout=timeout):
@@ -372,8 +400,8 @@ class InferenceService:
             return [{"checkpoint": k[0], "model_sha256": k[1], "device": str(rt.device)} for k, rt in self._cache.items()]
 
     def generate(self, ckpt: Path, prompt: str, max_new_tokens: int, temperature: float, top_k: int, top_p: float,
-                 repetition_penalty: float, seed: int | None) -> dict:
-        rt = self._runtime(ckpt)
+                 repetition_penalty: float, seed: int | None, tokenizer_dir: Path | None = None) -> dict:
+        rt = self._runtime(ckpt, tokenizer_dir)
         if not self._gen.acquire(timeout=5):
             raise Busy("another generation is running; try again shortly")
         cancel = threading.Event()

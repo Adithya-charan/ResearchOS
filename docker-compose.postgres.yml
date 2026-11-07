@@ -1,0 +1,104 @@
+# PostgreSQL deployment of RESEARCHOS: PostgreSQL + one-shot migration + API + worker.
+#
+#   cp .env.example .env            # then set POSTGRES_PASSWORD (there is no default password, on purpose)
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+#
+# This file is an override of docker-compose.yml (which keeps the single-host SQLite setup working on its own): it adds the postgres,
+# migrate and worker services and points the api service at PostgreSQL. Both databases live in ONE PostgreSQL database in two
+# schemas, `api` and `engine` (their tables share names such as `runs`, so they cannot share a namespace). See docs/DATABASE.md.
+#
+# Not verified in the development environment: Docker is not installed there, so this file is checked statically
+# (tests/test_p7_deploy.py) and the PostgreSQL behaviour is verified by the integration tests against a real PostgreSQL server.
+# Credentials come from the environment only. The password must be URL-safe (letters, digits, - . _ ~) because it is embedded in the
+# connection URL; generate one with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+x-researchos-env: &researchos-env
+  RESEARCHOS_DATABASE_URL: postgresql://${POSTGRES_USER:-researchos}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-researchos}
+  RESEARCHOS_DATABASE_SCHEMA: api
+  RESEARCHOS_ENGINE_DATABASE_SCHEMA: engine
+  RESEARCHOS_DB_POOL_SIZE: ${RESEARCHOS_DB_POOL_SIZE:-10}
+  RESEARCHOS_DB_MAX_OVERFLOW: ${RESEARCHOS_DB_MAX_OVERFLOW:-20}
+  RESEARCHOS_AUTO_MIGRATE: "false"       # the migrate service owns schema changes; api and worker only verify
+  RESEARCHOS_EMBEDDED_WORKER: "false"    # runs are executed by the worker service, never inside the request process
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-researchos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-researchos}
+    volumes:
+      - researchos-pgdata:/var/lib/postgresql/data     # the database survives `docker compose down`; only `down -v` removes it
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s        # PostgreSQL's "smart/fast shutdown" on SIGTERM finishes or rolls back transactions cleanly
+    # No `ports:` entry: the database is reachable from the other services only, never from the host or the network.
+
+  migrate:
+    build: .
+    image: researchos-api:local
+    init: true
+    restart: "no"
+    command: ["python", "scripts/migrate_db.py", "upgrade"]
+    environment:
+      <<: *researchos-env
+      RESEARCHOS_AUTO_MIGRATE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    environment:
+      <<: *researchos-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: .
+    image: researchos-api:local
+    init: true
+    restart: unless-stopped
+    command: ["python", "scripts/run_worker.py"]
+    environment:
+      <<: *researchos-env
+      RESEARCHOS_DEMO_CORPUS: ${RESEARCHOS_DEMO_CORPUS:-false}
+      RESEARCHOS_INFERENCE_DEVICE: cpu
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - researchos-data:/data                          # the worker reads the same uploaded documents as the api
+      - ${RESEARCHOS_MODELS_PATH:-./artifacts/checkpoints}:/models:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 40s       # SIGTERM: stop claiming, hand running jobs back (no attempt penalty), then exit
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+    mem_limit: ${RESEARCHOS_MEM_LIMIT:-4g}
+    pids_limit: 512
+
+volumes:
+  researchos-pgdata:

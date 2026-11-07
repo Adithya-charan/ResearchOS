@@ -1,8 +1,13 @@
-"""Durable run state in SQLite (WAL mode).
+"""Durable run state in SQLite (WAL mode) or PostgreSQL.
 
 The schema mirrors the blueprint's tables (research_projects, research_runs, agent_tasks, agent_events,
-approvals) plus a provenance-tracked memory table. It is deliberately behind this one class so the API phase can
-swap in PostgreSQL without touching the scheduler. Every mutation that must be atomic goes through `transaction()`.
+approvals) plus a provenance-tracked memory table. Both backends sit behind this one class, so the scheduler and the agents do
+not know which one they run on. `Store("path.db")` / `Store(":memory:")` use SQLite; `Store("postgresql://...")` uses PostgreSQL
+(see `agent_engine/state/dburl.py` for the optional `schema` parameter and `docs/DATABASE.md`).
+
+Every mutation that must be atomic goes through `transaction()`. SQLite serialises writers with `BEGIN IMMEDIATE`; PostgreSQL
+uses ordinary READ COMMITTED transactions plus row locks (`SELECT ... FOR UPDATE`) wherever a value is read and then changed, and a
+per-run advisory lock so a run's events become visible in id order.
 """
 from __future__ import annotations
 
@@ -17,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from agent_engine.state import migrate
+from agent_engine.state import dburl, migrate
 from agent_engine.state.transitions import check_run, check_task
 
 _RUN_COLUMNS = {
@@ -43,15 +48,40 @@ def _dumps(obj: Any) -> str:
     return json.dumps(obj, sort_keys=True, ensure_ascii=False)
 
 
+class _Row(dict):
+    """A PostgreSQL row that also answers `row[0]`, like `sqlite3.Row`."""
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return list(self.values())[key]
+        return super().__getitem__(key)
+
+
+def _row_factory(cursor):
+    names = [c.name for c in cursor.description] if cursor.description else []
+
+    def make(values):
+        return _Row(zip(names, values))
+    return make
+
+
+class StoreUnavailable(RuntimeError):
+    """The PostgreSQL server could not be reached (a write is not retried because it may already have been applied)."""
+
+
 class Store:
     def __init__(self, path: str | Path = ":memory:"):
         self.path = str(path)
+        self.postgres = dburl.is_postgres(self.path)
+        self._lock = threading.RLock()
+        self._depth = 0
+        if self.postgres:
+            self._init_postgres()
+            return
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
         self._conn.row_factory = sqlite3.Row
-        self._lock = threading.RLock()
-        self._depth = 0
         with self._lock:
             self._conn.execute("PRAGMA foreign_keys = ON")
             self._conn.execute("PRAGMA busy_timeout = 5000")
@@ -69,9 +99,44 @@ class Store:
         else:
             migrate.upgrade(self.path)  # Alembic: creates, upgrades or adopts the schema; refuses unknown ones
 
+    # ------------------------------------------------------------------ PostgreSQL connection
+    def _init_postgres(self) -> None:
+        import psycopg  # imported here so SQLite-only installations do not need the driver
+        self._psycopg = psycopg
+        self._dsn, self._schema = dburl.psycopg_dsn(self.path)
+        self._conn = None
+        self._connect()
+        migrate.upgrade(self.path)  # Alembic under an advisory lock: creates, upgrades or refuses; never drops
+
+    def _connect(self) -> None:
+        opts = dburl.connect_options(self._schema, "researchos-engine")
+        try:
+            self._conn = self._psycopg.connect(self._dsn, autocommit=True, row_factory=_row_factory, **opts)
+        except self._psycopg.OperationalError as exc:
+            raise StoreUnavailable(f"cannot connect to {dburl.redact(self.path)}: {exc}") from exc
+
+    def _healthy(self) -> bool:
+        return self._conn is not None and not self._conn.closed and not self._conn.broken
+
+    def _exec(self, sql: str, params: tuple = ()):
+        """Run one statement on the PostgreSQL connection. A connection already known to be dead is replaced first. A statement that
+        fails because the connection died mid-flight is retried only when it is a read outside a transaction: a write may have been
+        applied before the connection dropped, so repeating it blindly could duplicate it."""
+        sql = sql.replace("?", "%s")
+        if not self._depth and not self._healthy():
+            self._connect()
+        try:
+            return self._conn.execute(sql, params)
+        except (self._psycopg.OperationalError, self._psycopg.InterfaceError) as exc:
+            if self._depth == 0 and sql.lstrip()[:6].upper() == "SELECT" and not self._healthy():
+                self._connect()
+                return self._conn.execute(sql, params)
+            raise StoreUnavailable(f"database connection lost: {exc}") from exc
+
     def close(self) -> None:
         with self._lock:
-            self._conn.close()
+            if self._conn is not None:
+                self._conn.close()
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
@@ -80,29 +145,58 @@ class Store:
             if self._depth:
                 yield
                 return
-            self._conn.execute("BEGIN IMMEDIATE")
+            if self.postgres:
+                if not self._healthy():
+                    self._connect()
+                try:
+                    self._conn.execute("BEGIN")
+                except (self._psycopg.OperationalError, self._psycopg.InterfaceError) as exc:
+                    raise StoreUnavailable(f"database connection lost: {exc}") from exc  # nothing was sent, nothing was applied
+            else:
+                self._conn.execute("BEGIN IMMEDIATE")
             self._depth = 1
             try:
                 yield
             except BaseException:
-                self._conn.execute("ROLLBACK")
+                try:
+                    self._conn.execute("ROLLBACK")
+                except Exception:  # the connection may be gone: the server rolls back an abandoned transaction by itself
+                    pass
                 raise
             else:
-                self._conn.execute("COMMIT")
+                try:
+                    self._conn.execute("COMMIT")
+                except Exception as exc:
+                    if self.postgres and isinstance(exc, (self._psycopg.OperationalError, self._psycopg.InterfaceError)):
+                        # The server may or may not have committed before the connection dropped: say so instead of guessing.
+                        raise StoreUnavailable(f"database connection lost while committing (outcome unknown): {exc}") from exc
+                    raise
             finally:
                 self._depth = 0
 
-    def _all(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
-        with self._lock:
-            return self._conn.execute(sql, params).fetchall()
+    @property
+    def _for_update(self) -> str:
+        """Row lock for read-then-write sequences. SQLite needs none (BEGIN IMMEDIATE already serialises writers)."""
+        return " FOR UPDATE" if self.postgres else ""
 
-    def _one(self, sql: str, params: tuple = ()) -> sqlite3.Row | None:
+    def _all(self, sql: str, params: tuple = ()) -> list:
         with self._lock:
-            return self._conn.execute(sql, params).fetchone()
+            return (self._exec(sql, params) if self.postgres else self._conn.execute(sql, params)).fetchall()
 
-    def _run(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
+    def _one(self, sql: str, params: tuple = ()):
         with self._lock:
-            return self._conn.execute(sql, params)
+            return (self._exec(sql, params) if self.postgres else self._conn.execute(sql, params)).fetchone()
+
+    def _run(self, sql: str, params: tuple = ()):
+        with self._lock:
+            return self._exec(sql, params) if self.postgres else self._conn.execute(sql, params)
+
+    def _insert_id(self, sql: str, params: tuple) -> int:
+        """Insert one row of a table with an integer `id` and return that id."""
+        with self._lock:
+            if self.postgres:
+                return int(self._exec(sql + " RETURNING id", params).fetchone()[0])
+            return int(self._conn.execute(sql, params).lastrowid)
 
     # ------------------------------------------------------------------ projects / runs
     def create_project(self, title: str, question: str) -> str:
@@ -117,6 +211,8 @@ class Store:
     def create_run(self, project_id: str, question: str, limits: dict, config: dict | None = None) -> str:
         rid = new_id("run")
         with self.transaction():
+            if self.postgres:  # two processes creating runs for one project must not both read the same count
+                self._one("SELECT id FROM projects WHERE id=? FOR UPDATE", (project_id,))
             n = self._one("SELECT COUNT(*) FROM runs WHERE project_id=?", (project_id,))[0]
             self._run(
                 "INSERT INTO runs (id, project_id, run_number, question, status, limits_json, config_json, created_at)"
@@ -148,10 +244,14 @@ class Store:
             raise ValueError(f"cannot update run columns {sorted(bad)}")
         if not fields:
             return
-        if "status" in fields:
-            check_run(self.get_run(run_id)["status"], fields["status"])
         sets = ", ".join(f"{k}=?" for k in fields)
-        self._run(f"UPDATE runs SET {sets} WHERE id=?", (*fields.values(), run_id))
+        with self.transaction():  # the transition is checked against the row we hold, so two writers cannot both pass the check
+            if "status" in fields:
+                row = self._one("SELECT status FROM runs WHERE id=?" + self._for_update, (run_id,))
+                if row is None:
+                    raise KeyError(f"unknown run {run_id}")
+                check_run(row["status"], fields["status"])
+            self._run(f"UPDATE runs SET {sets} WHERE id=?", (*fields.values(), run_id))
 
     def add_model_tokens(self, run_id: str, n: int) -> int:
         """Adjust the run's token counter by `n` (may be negative when a reservation is refunded)."""
@@ -162,7 +262,7 @@ class Store:
     def reserve_model_tokens(self, run_id: str, n: int, limit: int) -> bool:
         """Atomically claim `n` tokens of the run's budget; False (and no change) if it would exceed `limit`."""
         with self.transaction():
-            used = self._one("SELECT model_tokens_used FROM runs WHERE id=?", (run_id,))[0]
+            used = self._one("SELECT model_tokens_used FROM runs WHERE id=?" + self._for_update, (run_id,))[0]
             if used + n > limit:
                 return False
             self._run("UPDATE runs SET model_tokens_used = model_tokens_used + ? WHERE id=?", (n, run_id))
@@ -211,10 +311,14 @@ class Store:
         bad = set(cols) - _TASK_COLUMNS
         if bad:
             raise ValueError(f"cannot update task columns {sorted(bad)}")
-        if "status" in cols:
-            check_task(self.get_task(task_id)["status"], cols["status"])
         sets = ", ".join(f"{k}=?" for k in cols)
-        self._run(f"UPDATE tasks SET {sets} WHERE id=?", (*cols.values(), task_id))
+        with self.transaction():  # check and write on the same locked row: a task cannot be moved twice from the same state
+            if "status" in cols:
+                row = self._one("SELECT status FROM tasks WHERE id=?" + self._for_update, (task_id,))
+                if row is None:
+                    raise KeyError(f"unknown task {task_id}")
+                check_task(row["status"], cols["status"])
+            self._run(f"UPDATE tasks SET {sets} WHERE id=?", (*cols.values(), task_id))
 
     def task_counts(self, run_id: str) -> dict[str, int]:
         rows = self._all("SELECT status, COUNT(*) n FROM tasks WHERE run_id=? GROUP BY status", (run_id,))
@@ -222,9 +326,8 @@ class Store:
 
     # ------------------------------------------------------------------ execution records
     def begin_execution(self, run_id: str, task_id: str, agent_type: str, attempt: int) -> int:
-        cur = self._run("INSERT INTO task_executions (run_id, task_id, agent_type, attempt, started_at) VALUES (?,?,?,?,?)",
-                        (run_id, task_id, agent_type, attempt, utcnow()))
-        return int(cur.lastrowid)
+        return self._insert_id("INSERT INTO task_executions (run_id, task_id, agent_type, attempt, started_at) VALUES (?,?,?,?,?)",
+                               (run_id, task_id, agent_type, attempt, utcnow()))
 
     def finish_execution(self, exec_id: int, status: str, duration_s: float, cpu_process_s: float, error: str | None) -> None:
         self._run("UPDATE task_executions SET status=?, finished_at=?, duration_s=?, cpu_process_s=?, error=? "
@@ -245,11 +348,15 @@ class Store:
 
     # ------------------------------------------------------------------ events
     def add_event(self, run_id: str, event_type: str, payload: dict | None = None, task_id: str | None = None) -> int:
-        cur = self._run(
-            "INSERT INTO events (run_id, task_id, event_type, payload_json, created_at) VALUES (?,?,?,?,?)",
-            (run_id, task_id, event_type, _dumps(payload or {}), utcnow()),
-        )
-        return int(cur.lastrowid)
+        sql = "INSERT INTO events (run_id, task_id, event_type, payload_json, created_at) VALUES (?,?,?,?,?)"
+        params = (run_id, task_id, event_type, _dumps(payload or {}), utcnow())
+        if not self.postgres:
+            return self._insert_id(sql, params)
+        # Sequence values are handed out before commit, so two writers could commit out of id order and a reader polling
+        # `id > last_seen` would skip the earlier one. Holding a per-run lock until commit makes a run's events commit in id order.
+        with self.transaction():
+            self._run("SELECT pg_advisory_xact_lock(hashtext(?))", (f"events:{run_id}",))
+            return self._insert_id(sql, params)
 
     def list_events(self, run_id: str, after_id: int = 0, limit: int = 1000) -> list[dict]:
         rows = self._all(
@@ -294,7 +401,7 @@ class Store:
         if decision not in ("approved", "rejected"):
             raise ValueError("decision must be 'approved' or 'rejected'")
         with self.transaction():
-            row = self._one("SELECT decision FROM approvals WHERE id=?", (approval_id,))
+            row = self._one("SELECT decision FROM approvals WHERE id=?" + self._for_update, (approval_id,))
             if row is None:
                 raise KeyError(f"unknown approval {approval_id}")
             if row["decision"] is not None:

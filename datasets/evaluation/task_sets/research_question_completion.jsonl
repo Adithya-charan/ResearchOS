@@ -1,0 +1,6 @@
+{"id": "research_question_completion-00", "kind": "completion", "prefix": "Research question: How does temperature affect", "continuation": " the ionic conductivity of the material?"}
+{"id": "research_question_completion-01", "kind": "completion", "prefix": "Research question: Does increasing the sample size reduce", "continuation": " the variance of the estimate?"}
+{"id": "research_question_completion-02", "kind": "completion", "prefix": "Research question: What is the relationship between", "continuation": " training data quality and model accuracy?"}
+{"id": "research_question_completion-03", "kind": "completion", "prefix": "Research question: Can the proposed method generalize to", "continuation": " conditions that were not seen during calibration?"}
+{"id": "research_question_completion-04", "kind": "completion", "prefix": "Research question: Which factors explain the difference in", "continuation": " reported outcomes between the two studies?"}
+{"id": "research_question_completion-05", "kind": "completion", "prefix": "Research question: To what extent does the measurement protocol influence", "continuation": " the reproducibility of the results?"}

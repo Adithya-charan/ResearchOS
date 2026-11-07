@@ -35,9 +35,10 @@ class EngineRuntime:
     def __init__(self, settings: Settings, index_provider: Callable[[str], BM25Index] | None = None, corpora=None):
         self.settings = settings
         self.corpora = corpora  # CorpusManager: per-project document libraries
-        self.store = Store(settings.engine_db if str(settings.engine_db) != ":memory:" else ":memory:")
+        self.store = Store(str(settings.engine_db))  # a SQLite file, ":memory:" or a postgresql:// URL
         self._index_provider = index_provider
         self._default_index: BM25Index | None = None
+        self.provider_resolver = None  # project_id -> (backend | None, RolePolicy | None); set by the app (the Model Lab selection)
         self.jobs = None  # JobQueue, attached by the app (execution happens in workers, never in request handlers)
         self._lock = threading.Lock()
 
@@ -70,8 +71,9 @@ class EngineRuntime:
                 with mgr.lock(project_id):
                     v = mgr.get(project_id).verify_passage(passage_id)
                 return v.ok, v.message
+        backend, role_policy = (self.provider_resolver(project_id) if self.provider_resolver is not None else (None, None))
         return build_engine(self.store, index, workflow=self.settings.workflow, catalog=catalog, verifier=verifier,
-                            poll_interval=0.05)
+                            poll_interval=0.05, backend=backend, role_policy=role_policy)
 
     def controller(self) -> ResearchEngine:
         """Pause/resume/cancel/recover only touch stored state, so they need no index (and must not rebuild one)."""

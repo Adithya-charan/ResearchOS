@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 import torch
 
-from model.architecture.transformer import Transformer
+from model.architecture.transformer import IGNORE_INDEX, Transformer
 from model.data.dataset import TokenDataset
 
 
@@ -24,15 +24,19 @@ def evaluate_loss(
     was_training = model.training
     model.eval()
     ctx = autocast_ctx if autocast_ctx is not None else contextlib.nullcontext()
-    total, batches = 0.0, 0
+    total, tokens, batches = 0.0, 0, 0
     for x, y in dataset.eval_batches(batch_size, max_batches):
         with ctx:
             out = model(x.to(device), targets=y.to(device))
-        total += float(out.loss)
+        n = int((y != IGNORE_INDEX).sum())  # token-weighted: batches with ignored/padded targets count less
+        total += float(out.loss) * n
+        tokens += n
         batches += 1
     model.train(was_training)
-    loss = total / batches
-    return {"loss": loss, "perplexity": math.exp(min(loss, 50.0)), "tokens": batches * batch_size * dataset.seq_len}
+    if tokens == 0:
+        raise ValueError("evaluation set produced no scorable tokens")
+    loss = total / tokens
+    return {"loss": loss, "perplexity": math.exp(min(loss, 50.0)), "tokens": tokens}
 
 
 def repetition_rate(ids: Sequence[int], n: int = 3) -> float:

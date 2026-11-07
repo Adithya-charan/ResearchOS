@@ -1,0 +1,152 @@
+{
+  "hardware": {
+    "bf16_supported": true,
+    "cpu": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "cpu_count": 20,
+    "cuda_available": true,
+    "cuda_version": "13.0",
+    "gpu_compute_capability": "8.6",
+    "gpu_free_bytes": 5411700736,
+    "gpu_name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+    "gpu_total_bytes": 6441926656,
+    "platform": "Windows-10-10.0.26300-SP0",
+    "python": "3.11.0",
+    "ram_available_bytes": 1946697728,
+    "ram_total_bytes": 16876888064,
+    "torch": "2.14.0+cu130"
+  },
+  "measured_at": "2026-11-07T15:01:47+0530",
+  "notes": [
+    "Training figures use random token batches at the profile's micro-batch size: they measure memory and throughput, not learning.",
+    "A profile is only said to fit this machine where `ok` is true here."
+  ],
+  "profiles": {
+    "CONSUMER_MEDIUM": {
+      "cuda": {
+        "inference": {
+          "basis": "measured on freshly initialised weights of this architecture (speed does not depend on learned weights)",
+          "cache_speedup": 0.950291199778832,
+          "cached": {
+            "ms_per_token": 40.24916093749198,
+            "seconds": 2.5759462999994867,
+            "time_to_first_token_ms": 32.49329997925088,
+            "tokens_per_second": 24.845238427529626
+          },
+          "checkpoint_bytes_fp32": 125869408,
+          "new_tokens": 64,
+          "peak_gpu_bytes": 152311808,
+          "prompt_tokens": 32,
+          "runs": 3,
+          "uncached": {
+            "ms_per_token": 38.24842343738055,
+            "seconds": 2.4478990999923553,
+            "time_to_first_token_ms": 37.590299994917586,
+            "tokens_per_second": 26.14486847117182
+          }
+        },
+        "process_rss_mb_after": 1676.765625,
+        "training": {
+          "basis": "measurement",
+          "device": "cuda",
+          "estimate_over_measured": 2.003899667704372,
+          "estimated_bytes": 1457039360,
+          "final_loss_finite": true,
+          "init_seconds": 0.7364150000212248,
+          "micro_batch": 4,
+          "ok": true,
+          "parameters": 31465984,
+          "peak_gpu_bytes": 727101952,
+          "precision": "bf16",
+          "profile": "CONSUMER_MEDIUM",
+          "seq_len": 512,
+          "step_seconds": 0.6743169000061849,
+          "tokens_per_second": 3037.147667485741
+        }
+      }
+    },
+    "CONSUMER_SMALL": {
+      "cuda": {
+        "inference": {
+          "basis": "measured on freshly initialised weights of this architecture (speed does not depend on learned weights)",
+          "cache_speedup": 0.8976624194272714,
+          "cached": {
+            "ms_per_token": 5.428556250080874,
+            "seconds": 0.3474276000051759,
+            "time_to_first_token_ms": 4.797200002940372,
+            "tokens_per_second": 184.21104137681215
+          },
+          "checkpoint_bytes_fp32": 23419568,
+          "new_tokens": 64,
+          "peak_gpu_bytes": 43203584,
+          "prompt_tokens": 32,
+          "runs": 3,
+          "uncached": {
+            "ms_per_token": 4.873010937444633,
+            "seconds": 0.3118726999964565,
+            "time_to_first_token_ms": 4.113299975870177,
+            "tokens_per_second": 205.2119342306241
+          }
+        },
+        "process_rss_mb_after": 1463.4765625,
+        "training": {
+          "basis": "measurement",
+          "device": "cuda",
+          "estimate_over_measured": 1.9439583938329945,
+          "estimated_bytes": 1131036672,
+          "final_loss_finite": true,
+          "init_seconds": 0.29119429999263957,
+          "micro_batch": 16,
+          "ok": true,
+          "parameters": 5853184,
+          "peak_gpu_bytes": 581821440,
+          "precision": "bf16",
+          "profile": "CONSUMER_SMALL",
+          "seq_len": 256,
+          "step_seconds": 0.07962420000694692,
+          "tokens_per_second": 51441.64713293997
+        }
+      }
+    },
+    "CPU_DEBUG": {
+      "cpu": {
+        "inference": {
+          "basis": "measured on freshly initialised weights of this architecture (speed does not depend on learned weights)",
+          "cache_speedup": 1.3308514250246681,
+          "cached": {
+            "ms_per_token": 3.976275000241003,
+            "seconds": 0.1272408000077121,
+            "time_to_first_token_ms": 5.371600011130795,
+            "tokens_per_second": 251.49165989258535
+          },
+          "checkpoint_bytes_fp32": 550216,
+          "new_tokens": 32,
+          "prompt_tokens": 32,
+          "runs": 3,
+          "uncached": {
+            "ms_per_token": 5.291831250360701,
+            "seconds": 0.16933860001154244,
+            "time_to_first_token_ms": 5.360799987101927,
+            "tokens_per_second": 188.97050051092202
+          }
+        },
+        "process_rss_mb_after": 706.22265625,
+        "training": {
+          "basis": "measurement",
+          "device": "cpu",
+          "estimated_bytes": 8801280,
+          "final_loss_finite": true,
+          "init_seconds": 0.03330969999660738,
+          "micro_batch": 4,
+          "ok": true,
+          "parameters": 136960,
+          "precision": "fp32",
+          "profile": "CPU_DEBUG",
+          "seq_len": 64,
+          "step_seconds": 0.03726183333007308,
+          "tokens_per_second": 6870.300710442739
+        }
+      }
+    }
+  },
+  "status": "measured"
+}
