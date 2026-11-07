@@ -1,0 +1,193 @@
+[
+  {
+    "id": "c01",
+    "category": "supported",
+    "expected": "SUPPORTED",
+    "text": "Cells with the additive kept 91 percent of their capacity after three hundred fast charge cycles",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c02",
+    "category": "supported",
+    "expected": "SUPPORTED",
+    "text": "Branching colonies bleached earlier than massive colonies",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c03",
+    "category": "supported",
+    "expected": "SUPPORTED",
+    "text": "Capacity fade after twelve months was 19 percent at 45 degrees",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c04",
+    "category": "supported",
+    "expected": "SUPPORTED",
+    "text": "Water holding capacity rose by 25 percent at five percent biochar",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c05",
+    "category": "supported",
+    "expected": "SUPPORTED",
+    "text": "Plants with access to hyphae took up 40 percent more phosphorus",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c06",
+    "category": "partial",
+    "expected": "PARTIALLY_SUPPORTED",
+    "text": "Client drift grew with the number of local epochs and communication cost doubled across every hospital",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "only the first half is stated"
+  },
+  {
+    "id": "c07",
+    "category": "partial",
+    "expected": "PARTIALLY_SUPPORTED",
+    "text": "Cells with the additive retained more capacity than cells without it after fast charging",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "one document supports it and another contradicts it (conflicting evidence)"
+  },
+  {
+    "id": "c08",
+    "category": "partial",
+    "expected": "PARTIALLY_SUPPORTED",
+    "text": "A small proximal term eliminated the loss of accuracy entirely",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "the document says 'reduced', not 'eliminated'. The system gets this right only because 'eliminated' and 'entirely' are absent from the document (coverage falls below the direct threshold); it does not understand the difference. Had the claim said 'reduced entirely' it would be called SUPPORTED."
+  },
+  {
+    "id": "c09",
+    "category": "contradicted",
+    "expected": "CONTRADICTED",
+    "text": "Water holding capacity fell by 25 percent at five percent biochar",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "opposite direction word"
+  },
+  {
+    "id": "c10",
+    "category": "contradicted",
+    "expected": "CONTRADICTED",
+    "text": "Test accuracy after fifty rounds rose from 81 percent at one epoch to 63 percent at twenty",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "opposite direction word"
+  },
+  {
+    "id": "c11",
+    "category": "contradicted",
+    "expected": "CONTRADICTED",
+    "text": "Capacity fade after twelve months was 40 percent at 50 degrees",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "different figures for the same quantity"
+  },
+  {
+    "id": "c12",
+    "category": "contradicted",
+    "expected": "CONTRADICTED",
+    "text": "Capacity fade after twelve months was 40 percent at 45 degrees",
+    "claim_type": "result",
+    "known_limitation": true,
+    "note": "the figure 45 also occurs in the document sentence (for another quantity); numbers are not paired with their units, so the system is expected to say PARTIALLY_SUPPORTED, not CONTRADICTED"
+  },
+  {
+    "id": "c13",
+    "category": "contradicted",
+    "expected": "CONTRADICTED",
+    "text": "The benefit did not disappear when the soil was fertilised heavily",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "negation"
+  },
+  {
+    "id": "c14",
+    "category": "contradicted",
+    "expected": "CONTRADICTED",
+    "text": "Massive colonies bleached earlier than branching colonies",
+    "claim_type": "result",
+    "known_limitation": true,
+    "note": "the roles are swapped; word overlap is identical, so the system is expected to call it SUPPORTED"
+  },
+  {
+    "id": "c15",
+    "category": "insufficient",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "text": "Zebra migration routes follow seasonal rainfall in the savanna",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c16",
+    "category": "insufficient",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "text": "Graphene membranes remove arsenic from groundwater",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c17",
+    "category": "insufficient",
+    "expected": "SUPPORTED",
+    "text": "Heat stress made reef coral lose its colour sooner when branched",
+    "claim_type": "result",
+    "known_limitation": true,
+    "note": "a paraphrase with different vocabulary; lexical retrieval cannot connect it, so INSUFFICIENT_EVIDENCE is expected from the system"
+  },
+  {
+    "id": "c18",
+    "category": "unverified",
+    "expected": "UNVERIFIED",
+    "text": "No document examines drought effects on mycorrhizal phosphorus uptake",
+    "claim_type": "gap",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c19",
+    "category": "unverified",
+    "expected": "UNVERIFIED",
+    "text": "Varying biochar content over three levels changes soil water retention",
+    "claim_type": "hypothesis",
+    "known_limitation": false,
+    "note": ""
+  },
+  {
+    "id": "c20",
+    "category": "unverified",
+    "expected": "UNVERIFIED",
+    "text": "Cells with the additive kept 91 percent of their capacity",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "only an unresolvable citation is attached and no search is run",
+    "searched": false,
+    "attach_invalid": true
+  },
+  {
+    "id": "c21",
+    "category": "unverified",
+    "expected": "UNVERIFIED",
+    "text": "Cells fade",
+    "claim_type": "result",
+    "known_limitation": false,
+    "note": "too few content words to compare"
+  }
+]

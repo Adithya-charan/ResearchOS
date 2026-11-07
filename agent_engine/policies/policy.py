@@ -11,6 +11,7 @@ from agent_engine.errors import PolicyViolation
 class AgentPolicy:
     allowed_tools: frozenset[str] = frozenset()
     may_propose: frozenset[str] = frozenset()
+    may_block: frozenset[str] = frozenset()  # agent types whose pending tasks this agent's proposals may delay
 
 
 class PolicyEngine:
@@ -27,6 +28,9 @@ class PolicyEngine:
 
     def may_propose(self, parent_agent: str, child_agent: str) -> bool:
         return child_agent in self.policy_for(parent_agent).may_propose
+
+    def may_block(self, parent_agent: str, agent_type: str) -> bool:
+        return agent_type in self.policy_for(parent_agent).may_block
 
     def requires_approval(self, agent_type: str) -> bool:
         """Tasks of these agent types wait for a human decision before they run (e.g. experiments)."""
@@ -53,18 +57,19 @@ def full_policy(approval_required: Iterable[str] = ("experiment",), experiments:
     """The basic policy plus the research workflow. The workflow agents are read-only: none can search, write or propose."""
     return PolicyEngine(
         {
-            "supervisor": AgentPolicy(may_propose=frozenset({"discovery", "critic"} | ({"experiment"} if experiments else set()))),
+            "supervisor": AgentPolicy(may_propose=frozenset({"discovery", "critic", "verifier", "supervisor"} | ({"experiment"} if experiments else set())),
+                                      may_block=frozenset({"reviewer", "synthesis"})),
             "discovery": AgentPolicy(allowed_tools=frozenset({"corpus.search"})),
             "critic": AgentPolicy(
                 allowed_tools=frozenset({"corpus.get_passage"}),
-                may_propose=frozenset({"discovery", "critic"}) | WORKFLOW_AGENTS,
+                may_propose=frozenset({"discovery", "critic", "supervisor"}) | WORKFLOW_AGENTS,
             ),
             "literature": AgentPolicy(allowed_tools=frozenset({"corpus.document_passages"})),
             "gap": AgentPolicy(),
             "hypothesis": AgentPolicy(),
             "experiment_design": AgentPolicy(),  # design only: no tools, no proposals, never runs anything
             "reviewer": AgentPolicy(),
-            "verifier": AgentPolicy(allowed_tools=frozenset({"corpus.get_passage", "corpus.verify_passage"})),
+            "verifier": AgentPolicy(allowed_tools=frozenset({"corpus.get_passage", "corpus.verify_passage", "corpus.evidence_search"})),
             "synthesis": AgentPolicy(),
             "experiment": AgentPolicy(),  # the sandbox is not a tool: the agent calls the runner directly after approval
         },

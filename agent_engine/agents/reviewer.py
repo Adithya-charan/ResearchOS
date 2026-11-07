@@ -6,6 +6,7 @@ the research is correct. Contradiction detection is lexical (shared terms + oppo
 from __future__ import annotations
 
 from agent_engine.agents.base import Agent, AgentContext
+from agent_engine.agents.evidence import merged_verification
 from agent_engine.agents.textutil import polarity
 from agent_engine.contracts import AgentOutput, TaskSpec
 from agent_engine.errors import NonRetryableError
@@ -56,6 +57,33 @@ class ReviewerAgent(Agent):
                              f"Possible contradiction (shared terms: {', '.join(shared)}): \"{a['text']}\" vs \"{b['text']}\". "
                              "Word overlap with opposite direction words only; a human must decide.")
 
+        merged = merged_verification(task.dependency_outputs.values())
+        for c in merged["claims"]:
+            if c["claim_type"] in ("gap", "hypothesis"):
+                continue
+            quote = next((e["quote"] for e in c["evidence"] if e["role"] == "contradicting"), "")
+            if c["status"] == "CONTRADICTED":
+                flag("major", "contradicted_claim", c["key"], f"This claim is contradicted by a stored passage: \"{quote}\" "
+                     "(lexical check; a human must read both).")
+            elif c["conflicting"]:
+                flag("major", "contradictory_evidence", c["key"], "Stored passages both support and contradict this claim"
+                     + (f" (contradicting: \"{quote}\")." if quote else "."))
+            elif c["status"] == "INSUFFICIENT_EVIDENCE":
+                flag("major", "unsupported_statement", c["key"], "No stored passage addresses this claim; it should not be relied on.")
+            elif c["status"] == "UNVERIFIED":
+                flag("major", "unverifiable_claim", c["key"], "This claim could not be verified: " + "; ".join(c["explanation"][:2]) + ".")
+            elif c["status"] == "PARTIALLY_SUPPORTED":
+                flag("minor", "partial_support", c["key"], "Only indirect evidence supports this claim (" + "; ".join(c["explanation"][:1]) + ").")
+        for n in merged["novelty"]:
+            if n["label"] == "Similar prior work identified":
+                flag("major", "novelty", n["claim_key"], "Similar prior work was identified in the searched corpus ("
+                     + ", ".join(d.get("title") or d["document_id"] for d in n["similar_existing_research"][:3])
+                     + "); the proposal may not be new.")
+            elif n["label"] == "Insufficient literature coverage":
+                flag("minor", "novelty", n["claim_key"], "The corpus is too small to judge novelty; this label says nothing about the idea.")
+        if merged["needs_followup"]:
+            flag("major", "evidence_follow_up", "supervisor", f"{len(merged['needs_followup'])} claim(s) remain not fully supported after "
+                 f"{max(merged['rounds'] - 1, 0)} follow-up round(s).")
         for p in (by["experiment_design"].data["plans"] if "experiment_design" in by else []):
             if not p["metrics"]:
                 flag("major", "methodology", p["id"], "No evaluation metric is named in the accepted evidence; one must be chosen before running.")

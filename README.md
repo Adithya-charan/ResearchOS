@@ -137,7 +137,8 @@ Authentication is a server-side session in an HttpOnly cookie. Every state-chang
 | Corpus | `/projects/{id}/documents` (upload, list, passages, reprocess, delete), `/projects/{id}/search` |
 | Approvals | `GET /approvals`, `POST /approvals/{kind}/{id}/approve \| reject` |
 | Experiments | `/projects/{id}/experiments`, `/experiments/{id}` (`spec`, `request-approval`, `execute`, `logs`, `artifacts`, `reproduce`, `review`) |
-| Reports | `POST /runs/{id}/reports`, `GET/PATCH /reports/{id}`, `/versions`, `/export.md`, `/export.pdf`, `/export.json` |
+| Reports | `POST /runs/{id}/reports`, `GET/PATCH /reports/{id}`, `/versions`, `/export.md`, `/export.pdf`, `/export.json`, `/structured`, `/structured.md` |
+| Claims and evidence | `POST/GET /projects/{id}/claims`, `/claims/{cid}`, `/claims/{cid}/evidence`, `/claims/{cid}/verify`, `/claims/{cid}/verifications`, `/projects/{id}/verifications`, `POST /runs/{id}/claims/extract`, `/projects/{id}/novelty` (see `docs/EVIDENCE_VERIFICATION.md`) |
 | Models | `/models`, `/models/{id}` (`checkpoints`, `health`, `generate`, `generate/stream`), `/training/jobs` (`pause`, `resume`, `cancel`, `metrics`, `samples`, `log`) |
 | Live events (SSE) | `/runs/{id}/stream`, `/training/jobs/{id}/stream`, `/experiments/{id}/stream`; reconnect with `Last-Event-ID` |
 

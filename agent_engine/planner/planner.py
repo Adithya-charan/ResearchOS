@@ -65,6 +65,9 @@ def expand(
         if not policy.may_propose(parent["agent_type"], p.agent_type):
             reject(p, f"policy: '{parent['agent_type']}' may not propose '{p.agent_type}'")
             continue
+        if p.blocks and not all(policy.may_block(parent["agent_type"], b) for b in p.blocks):
+            reject(p, f"policy: '{parent['agent_type']}' may not block {sorted(p.blocks)}")
+            continue
         iteration = parent["iteration"] + (1 if p.followup else 0)
         if iteration > limits.max_iterations:
             reject(p, f"max_iterations ({limits.max_iterations}) reached")
@@ -97,6 +100,6 @@ def expand(
         accepted.append({
             "id": task_id, "agent_type": p.agent_type, "title": p.title, "input": p.input,
             "depends_on": list(dict.fromkeys(deps)), "iteration": iteration, "parent_task_id": parent["id"],
-            "requires_approval": policy.requires_approval(p.agent_type),
+            "requires_approval": policy.requires_approval(p.agent_type), "blocks": list(p.blocks),
         })
     return accepted, rejections

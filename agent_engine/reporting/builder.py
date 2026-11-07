@@ -22,7 +22,8 @@ def _cite(c: dict) -> dict:
     return {"document_id": c["document_id"], "page_number": c["page_number"], "passage_id": c["passage_id"]}
 
 
-def build_report(question: str, outputs: dict[str, AgentOutput], *, review_status: str = "pending") -> dict:
+def build_report(question: str, outputs: dict[str, AgentOutput], *, review_status: str = "pending",
+                 all_outputs: list[AgentOutput] | None = None) -> dict:
     """`outputs` maps agent_type -> AgentOutput (critic, literature, gap, hypothesis, verifier)."""
     critic, lit, gap, hyp, ver = (outputs.get(k) for k in ("critic", "literature", "gap", "hypothesis", "verifier"))
     assessment = critic.data["assessment"] if critic else {}
@@ -50,7 +51,7 @@ def build_report(question: str, outputs: dict[str, AgentOutput], *, review_statu
     if status == "insufficient_evidence":
         uncertainties.insert(0, "The evidence check did not find enough solid evidence; this report is a partial record, "
                                 "not a literature review.")
-    return {
+    report = {
         "question": question,
         "status": status,
         "novelty_statement": NOVELTY_NONE if not accepted and not assessment.get("low_quality_matches") else NOVELTY_FOUND,
@@ -77,3 +78,11 @@ def build_report(question: str, outputs: dict[str, AgentOutput], *, review_statu
         "human_review": {"status": review_status, "note": "No human has reviewed this report."
                          if review_status == "pending" else f"Review status: {review_status}."},
     }
+    # P6: the 18-section structured report and the merged claim verification (status per claim, evidence, novelty). The legacy keys
+    # above are unchanged. `all_outputs` carries every verifier pass and review of the run; without it the single outputs are used.
+    from agent_engine.agents.evidence import merged_verification
+    from agent_engine.reporting.structured import build_structured
+    outs = all_outputs if all_outputs is not None else list(outputs.values())
+    report["verification"] = merged_verification(outs)
+    report["structured"] = build_structured(report, outs)
+    return report

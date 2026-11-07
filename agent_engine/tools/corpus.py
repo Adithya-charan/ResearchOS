@@ -45,6 +45,27 @@ class SearchResult(BaseModel):
     corpus_passages: int
 
 
+class EvidenceSearchArgs(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+    k: int = Field(default=5, ge=1, le=10)
+
+
+class EvidenceHit(BaseModel):
+    passage_id: str
+    document_id: str
+    page_number: int | None
+    section: str
+    score: float  # recorded for the audit trail; never used to decide whether a claim is supported
+    text: str  # the full stored passage text (untrusted data), control characters removed
+    quality: str = "ok"
+
+
+class EvidenceSearchResult(BaseModel):
+    hits: list[EvidenceHit]
+    corpus_documents: int
+    corpus_passages: int
+
+
 class GetPassageArgs(BaseModel):
     passage_id: str = Field(min_length=1)
 
@@ -113,6 +134,14 @@ def build_corpus_tools(index: BM25Index, catalog: Callable[[str], dict | None] |
             corpus_passages=index.num_passages,
         )
 
+    def evidence_search(args: EvidenceSearchArgs) -> EvidenceSearchResult:
+        hits = index.search(args.query, k=args.k)
+        return EvidenceSearchResult(
+            hits=[EvidenceHit(passage_id=h.passage.passage_id, document_id=h.passage.document_id, page_number=h.passage.page_number,
+                              section=h.passage.section, score=round(h.score, 6),
+                              text=" ".join(_CONTROL_RE.sub(" ", h.passage.text).split()), quality=h.passage.quality) for h in hits],
+            corpus_documents=index.num_documents, corpus_passages=index.num_passages)
+
     def get_passage(args: GetPassageArgs) -> PassageResult:
         p = index.get(args.passage_id)
         if p is None:
@@ -133,6 +162,8 @@ def build_corpus_tools(index: BM25Index, catalog: Callable[[str], dict | None] |
     tools = [
         Tool("corpus.search", "BM25 search over indexed passages", SearchArgs, search),
         Tool("corpus.get_passage", "Fetch the full text of one indexed passage by id", GetPassageArgs, get_passage),
+        Tool("corpus.evidence_search", "Read-only BM25 search returning full passage text, for matching claims to evidence",
+             EvidenceSearchArgs, evidence_search),
         Tool("corpus.document_passages", "All indexed passages of one document, in reading order, with its metadata",
              DocumentPassagesArgs, document_passages),
     ]

@@ -442,6 +442,15 @@ class ResearchEngine:
         self._event(rc.run_id, "replan_requested", {"failed_task": row["id"], "agent_type": row["agent_type"], "error": error[:300]}, new["id"])
         self._event(rc.run_id, "task_created", _task_payload(new), new["id"])
 
+    def _apply_blocks(self, run_id: str, new_rows: list[dict]) -> None:
+        """A proposal with `blocks` makes every still-pending task of those agent types also wait for it. Runs in the same
+        transaction that creates the proposal, so the blocked task can never start in between."""
+        for new in (r for r in new_rows if r.get("blocks")):
+            for t in self.store.list_tasks(run_id):
+                if (t["agent_type"] in new["blocks"] and t["status"] == "pending" and t["id"] != new["id"]
+                        and new["id"] not in t["depends_on"]):
+                    self.store.update_task(t["id"], depends_on=[*t["depends_on"], new["id"]])
+
     def _on_success(self, rc: _RunCtl, row: dict, out: AgentOutput) -> None:
         run_id = rc.run_id
         with self.store.transaction():  # the output and the tasks it spawns are persisted together or not at all
@@ -450,6 +459,7 @@ class ResearchEngine:
             new_rows, rejections = expand(row, out.proposed_tasks, self.store.list_tasks(run_id), rc.limits,
                                           self.policy, set(self.registry.types()))
             self.store.add_tasks(run_id, new_rows)
+            self._apply_blocks(run_id, new_rows)
         self._event(run_id, "task_succeeded", {"status": out.status, "summary": out.summary[:300],
                                                "findings": len(out.findings), "evidence": len(out.evidence),
                                                "proposed": len(out.proposed_tasks)}, row["id"])

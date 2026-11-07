@@ -590,6 +590,33 @@ Tests: `tests/test_p5_knowledge.py` (25): metric formulas against hand computati
 being scored as a miss, phrase adjacency, document-level and metadata search, filters, citation fields, metadata validation (bad date,
 URL, type), the v1 -> v2 corpus upgrade and the newer-version refusal, and the HTTP surface.
 
+## Master prompt v2, P6 - evidence verification and research intelligence (`research/evidence/`, `agent_engine/agents/evidence.py`, `agent_engine/reporting/structured.py`, `api/claims_service.py`)
+
+Full description, thresholds and limits: `docs/EVIDENCE_VERIFICATION.md`. Not committed.
+
+* **Claims and evidence persisted** (API migration 0003): `claims`, `claim_evidence` (user rows survive re-verification), `claim_verifications`
+  (history), `novelty_assessments`.
+* **Verification engine:** deterministic sentence-level lexical check -> SUPPORTED / PARTIALLY_SUPPORTED / CONTRADICTED /
+  INSUFFICIENT_EVIDENCE / UNVERIFIED. Contradictions are first-class (negation, direction, differing figures); conflicting evidence yields
+  PARTIALLY_SUPPORTED with `conflicting=true`; invalid citations and unreliable extractions are listed and excluded; gap and hypothesis
+  claims are never "supported". Retrieval score is recorded, never used for status. Strength is not a probability.
+* **Novelty:** cautious labels relative to the searched corpus only, with queries, closest documents, limitations and unsearched areas.
+* **Report:** 18-section structured report, immutable snapshot, citations resolvable at read time.
+* **Agents:** Verifier extracts and verifies claims (new read-only tool `corpus.evidence_search`), Supervisor evidence review adds at most
+  `max_evidence_rounds` (default 1) follow-up rounds, new `ProposedTask.blocks` / policy `may_block` hold the reviewer and synthesis
+  until the chain ends, Reviewer turns contradicted/unsupported claims into findings.
+* **API:** claim create/list/detail, evidence attach/detach, verify, verification history, novelty, run claim extraction, structured
+  report (JSON and Markdown); owned-project scoping (404 otherwise) and CSRF on writes.
+* **Tests:** `tests/test_p6_evidence.py` 43 tests. Full suite: **724 passed, 1 warning, pytest exit code 0 (370 s)** (681 before P6).
+* **Evaluation (synthetic only):** 21 claims over 7 invented documents: 18/18 excluding documented known limitations, 0/3 on those
+  limitations (figure contradiction with equal direction, swapped argument roles, heavy paraphrase), 18/21 overall; novelty 4/4. This is
+  not real-literature validation.
+* **Defects found and fixed while building:** false negation/direction hits, claims with too few stems, figure-difference false
+  contradictions, supervisor `may_block` too narrow (reviewer could run before the follow-up), task ids breaking report-reproducibility
+  comparison in a test, a mislabelled known-limitation novelty case.
+* **Remaining:** lexical only (no paraphrase, no argument order, no quantifiers); no real-source evaluation set; novelty is lexical and
+  corpus-bound; PostgreSQL and frontend views of claims are not done.
+
 ## Status vs. the blueprint's minimum release criteria (model portion)
 
 | Criterion | State |

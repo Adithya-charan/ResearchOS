@@ -14,7 +14,7 @@ class SynthesisAgent(Agent):
     async def run(self, ctx: AgentContext, task: TaskSpec) -> AgentOutput:
         critic_assessment(task)  # raises if the evidence assessment is missing
         by_type = {o.agent_type: o for o in task.dependency_outputs.values()}
-        report = build_report(str(task.input.get("question") or ctx.question), by_type)
+        report = build_report(str(task.input.get("question") or ctx.question), by_type, all_outputs=list(task.dependency_outputs.values()))
         refs = [EvidenceReference(**f["citation"]) for fs in report["findings"].values() for f in fs]
         n_find = sum(len(v) for v in report["findings"].values())
         return AgentOutput(

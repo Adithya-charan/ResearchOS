@@ -1,0 +1,65 @@
+{
+  "v1_additive.md": {
+    "title": "Fluoroethylene additive and fast charging",
+    "authors": [
+      "M. Svensson"
+    ],
+    "publication_date": "2022-07-02",
+    "document_type": "article",
+    "url": "https://example.org/verification-eval/v1_additive"
+  },
+  "v2_additive_replication.md": {
+    "title": "Replication of an additive fast charging study",
+    "authors": [
+      "A. Okafor"
+    ],
+    "publication_date": "2023-04-11",
+    "document_type": "article",
+    "url": "https://example.org/verification-eval/v2_additive_replication"
+  },
+  "v3_bleaching.md": {
+    "title": "Bleaching thresholds on a fringing reef",
+    "authors": [
+      "T. Marlowe"
+    ],
+    "publication_date": "2019-05-30",
+    "document_type": "article",
+    "url": "https://example.org/verification-eval/v3_bleaching"
+  },
+  "v4_client_drift.md": {
+    "title": "Client drift in federated averaging",
+    "authors": [
+      "R. Castillo"
+    ],
+    "publication_date": "2022-02-11",
+    "document_type": "preprint",
+    "url": "https://example.org/verification-eval/v4_client_drift"
+  },
+  "v5_mycorrhizae.md": {
+    "title": "Mycorrhizal networks and phosphorus uptake",
+    "authors": [
+      "N. Adeyemi"
+    ],
+    "publication_date": "2018-08-01",
+    "document_type": "article",
+    "url": "https://example.org/verification-eval/v5_mycorrhizae"
+  },
+  "v6_biochar.md": {
+    "title": "Biochar and soil water retention",
+    "authors": [
+      "K. Lindqvist"
+    ],
+    "publication_date": "2020-04-10",
+    "document_type": "report",
+    "url": "https://example.org/verification-eval/v6_biochar"
+  },
+  "v7_ageing.md": {
+    "title": "Calendar ageing of stored lithium cells",
+    "authors": [
+      "L. Brandt"
+    ],
+    "publication_date": "2020-11-20",
+    "document_type": "report",
+    "url": "https://example.org/verification-eval/v7_ageing"
+  }
+}

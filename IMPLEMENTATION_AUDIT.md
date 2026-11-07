@@ -179,3 +179,9 @@ restart) depends on runs executing outside the request process and surviving res
   Closure pass: 18 further tests (deletion/index cleanup, restart persistence, combined filters, agent evidence traceability,
   authorization at every search level, evaluation reproducibility and synonym-stem disjointness). See `docs/RETRIEVAL_SYSTEM.md`.
   Lexical only: no semantic synonym matching; no coverage claim beyond the uploaded library.
+* P6 evidence verification and research intelligence: implemented, **uncommitted** at the time of writing. Persisted claims, claim
+  evidence, verification history and novelty assessments (API migration 0003); deterministic lexical verification engine with five
+  statuses and explicit contradiction handling; bounded novelty assessment; 18-section structured report; Verifier/Supervisor/Reviewer
+  integration with bounded evidence follow-up rounds; authenticated project-scoped claim, verification, novelty and structured-report
+  endpoints. Evaluation is on a synthetic dataset only (18/18 on non-limitation cases, 0/3 on documented known limitations); no
+  real-literature validation yet. Not semantic, not a proof. See `docs/EVIDENCE_VERIFICATION.md`.

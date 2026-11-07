@@ -7,6 +7,7 @@ Whether a passage truly SUPPORTS a claim, and whether a tension is a real contra
 from __future__ import annotations
 
 from agent_engine.agents.base import Agent, AgentContext
+from agent_engine.agents.evidence import build_novelty, build_verification
 from agent_engine.agents.literature import critic_assessment
 from agent_engine.agents.textutil import digit_tokens, polarity, squash
 from agent_engine.contracts import AgentOutput, EvidenceReference, TaskSpec
@@ -100,14 +101,23 @@ class VerifierAgent(Agent):
         if tensions:
             uncertainties.append(f"{len(tensions)} possible tension(s) between documents were flagged by word overlap and "
                                  "direction words; they may not be real contradictions.")
+        round_no = int(task.input.get("round", 1))
+        verification = await build_verification(ctx, task, claims, round_no)
+        novelty = await build_novelty(ctx, task) if round_no == 1 else []
+        vc = verification["counts"]
+        if verification["needs_followup"]:
+            uncertainties.append(f"{len(verification['needs_followup'])} claim(s) are not fully supported by stored passages "
+                                 "(partially supported, insufficient evidence or contradicted); more retrieval may change that.")
         return AgentOutput(
             task_id=task.id, agent_type=self.agent_type, status="partial" if counts.get("unsupported") else "ok",
-            summary=f"Checked {len(claims)} claim(s): " + ", ".join(f"{n} {k}" for k, n in sorted(counts.items())) + ".",
+            summary=f"Checked {len(claims)} claim(s): " + ", ".join(f"{n} {k}" for k, n in sorted(counts.items())) + ". "
+                    f"Evidence verification (round {round_no}): " + (", ".join(f"{n} {k}" for k, n in sorted(vc.items())) or "no claims") + ".",
             findings=[f"{c['id']} {c['status']}: {c['text'][:120]}" for c in claims if c["status"] in ("unsupported", "needs_review")][:10],
             evidence=[EvidenceReference(document_id=c["document_id"], page_number=c["page_number"], passage_id=c["passage_id"])
                       for c in verified],
             uncertainties=uncertainties, data={"claims": claims, "tensions": tensions, "counts": counts,
-                                               "source_files_checked": source_checks},
+                                               "source_files_checked": source_checks, "verification": verification,
+                                               "novelty": novelty, "round": round_no},
         )
 
     @staticmethod

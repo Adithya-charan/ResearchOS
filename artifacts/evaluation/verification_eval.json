@@ -1,0 +1,486 @@
+{
+  "synthetic": {
+    "claims": [
+      {
+        "id": "c01",
+        "category": "supported",
+        "text": "Cells with the additive kept 91 percent of their capacity after three hundred fast charge cycles",
+        "expected": "SUPPORTED",
+        "actual": "SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "at least one stored passage states the claim in nearly the same words, and no passage contradicts it",
+          "2 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c02",
+        "category": "supported",
+        "text": "Branching colonies bleached earlier than massive colonies",
+        "expected": "SUPPORTED",
+        "actual": "SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "at least one stored passage states the claim in nearly the same words, and no passage contradicts it"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c03",
+        "category": "supported",
+        "text": "Capacity fade after twelve months was 19 percent at 45 degrees",
+        "expected": "SUPPORTED",
+        "actual": "SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "at least one stored passage states the claim in nearly the same words, and no passage contradicts it",
+          "3 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c04",
+        "category": "supported",
+        "text": "Water holding capacity rose by 25 percent at five percent biochar",
+        "expected": "SUPPORTED",
+        "actual": "SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "at least one stored passage states the claim in nearly the same words, and no passage contradicts it",
+          "2 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c05",
+        "category": "supported",
+        "text": "Plants with access to hyphae took up 40 percent more phosphorus",
+        "expected": "SUPPORTED",
+        "actual": "SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "at least one stored passage states the claim in nearly the same words, and no passage contradicts it",
+          "4 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c06",
+        "category": "partial",
+        "text": "Client drift grew with the number of local epochs and communication cost doubled across every hospital",
+        "expected": "PARTIALLY_SUPPORTED",
+        "actual": "PARTIALLY_SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "weak",
+        "explanation": [
+          "only indirect evidence: passages cover part of the claim or its numbers do not match",
+          "1 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": "only the first half is stated"
+      },
+      {
+        "id": "c07",
+        "category": "partial",
+        "text": "Cells with the additive retained more capacity than cells without it after fast charging",
+        "expected": "PARTIALLY_SUPPORTED",
+        "actual": "PARTIALLY_SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": true,
+        "strength": "weak",
+        "explanation": [
+          "conflicting evidence: one passage supports the claim and another contradicts it; both are kept",
+          "3 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": "one document supports it and another contradicts it (conflicting evidence)"
+      },
+      {
+        "id": "c08",
+        "category": "partial",
+        "text": "A small proximal term eliminated the loss of accuracy entirely",
+        "expected": "PARTIALLY_SUPPORTED",
+        "actual": "PARTIALLY_SUPPORTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "weak",
+        "explanation": [
+          "only indirect evidence: passages cover part of the claim or its numbers do not match"
+        ],
+        "note": "the document says 'reduced', not 'eliminated'. The system gets this right only because 'eliminated' and 'entirely' are absent from the document (coverage falls below the direct threshold); it does not understand the difference. Had the claim said 'reduced entirely' it would be called SUPPORTED."
+      },
+      {
+        "id": "c09",
+        "category": "contradicted",
+        "text": "Water holding capacity fell by 25 percent at five percent biochar",
+        "expected": "CONTRADICTED",
+        "actual": "CONTRADICTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "a stored passage directly contradicts the claim and nothing directly supports it",
+          "1 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": "opposite direction word"
+      },
+      {
+        "id": "c10",
+        "category": "contradicted",
+        "text": "Test accuracy after fifty rounds rose from 81 percent at one epoch to 63 percent at twenty",
+        "expected": "CONTRADICTED",
+        "actual": "CONTRADICTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "a stored passage directly contradicts the claim and nothing directly supports it",
+          "4 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": "opposite direction word"
+      },
+      {
+        "id": "c11",
+        "category": "contradicted",
+        "text": "Capacity fade after twelve months was 40 percent at 50 degrees",
+        "expected": "CONTRADICTED",
+        "actual": "CONTRADICTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "a stored passage directly contradicts the claim and nothing directly supports it",
+          "3 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": "different figures for the same quantity"
+      },
+      {
+        "id": "c12",
+        "category": "contradicted",
+        "text": "Capacity fade after twelve months was 40 percent at 45 degrees",
+        "expected": "CONTRADICTED",
+        "actual": "PARTIALLY_SUPPORTED",
+        "correct": false,
+        "known_limitation": true,
+        "conflicting": false,
+        "strength": "weak",
+        "explanation": [
+          "only indirect evidence: passages cover part of the claim or its numbers do not match",
+          "3 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": "the figure 45 also occurs in the document sentence (for another quantity); numbers are not paired with their units, so the system is expected to say PARTIALLY_SUPPORTED, not CONTRADICTED"
+      },
+      {
+        "id": "c13",
+        "category": "contradicted",
+        "text": "The benefit did not disappear when the soil was fertilised heavily",
+        "expected": "CONTRADICTED",
+        "actual": "CONTRADICTED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "a stored passage directly contradicts the claim and nothing directly supports it"
+        ],
+        "note": "negation"
+      },
+      {
+        "id": "c14",
+        "category": "contradicted",
+        "text": "Massive colonies bleached earlier than branching colonies",
+        "expected": "CONTRADICTED",
+        "actual": "SUPPORTED",
+        "correct": false,
+        "known_limitation": true,
+        "conflicting": false,
+        "strength": "moderate",
+        "explanation": [
+          "at least one stored passage states the claim in nearly the same words, and no passage contradicts it"
+        ],
+        "note": "the roles are swapped; word overlap is identical, so the system is expected to call it SUPPORTED"
+      },
+      {
+        "id": "c15",
+        "category": "insufficient",
+        "text": "Zebra migration routes follow seasonal rainfall in the savanna",
+        "expected": "INSUFFICIENT_EVIDENCE",
+        "actual": "INSUFFICIENT_EVIDENCE",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "none",
+        "explanation": [
+          "no passage directly or indirectly addresses the claim"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c16",
+        "category": "insufficient",
+        "text": "Graphene membranes remove arsenic from groundwater",
+        "expected": "INSUFFICIENT_EVIDENCE",
+        "actual": "INSUFFICIENT_EVIDENCE",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "none",
+        "explanation": [
+          "no passage directly or indirectly addresses the claim"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c17",
+        "category": "insufficient",
+        "text": "Heat stress made reef coral lose its colour sooner when branched",
+        "expected": "SUPPORTED",
+        "actual": "INSUFFICIENT_EVIDENCE",
+        "correct": false,
+        "known_limitation": true,
+        "conflicting": false,
+        "strength": "none",
+        "explanation": [
+          "no passage directly or indirectly addresses the claim",
+          "1 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
+        ],
+        "note": "a paraphrase with different vocabulary; lexical retrieval cannot connect it, so INSUFFICIENT_EVIDENCE is expected from the system"
+      },
+      {
+        "id": "c18",
+        "category": "unverified",
+        "text": "No document examines drought effects on mycorrhizal phosphorus uptake",
+        "expected": "UNVERIFIED",
+        "actual": "UNVERIFIED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "none",
+        "explanation": [
+          "a gap is a proposal, not a statement a document can confirm; cited passages are listed as context only"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c19",
+        "category": "unverified",
+        "text": "Varying biochar content over three levels changes soil water retention",
+        "expected": "UNVERIFIED",
+        "actual": "UNVERIFIED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "none",
+        "explanation": [
+          "a hypothesis is a proposal, not a statement a document can confirm; cited passages are listed as context only"
+        ],
+        "note": ""
+      },
+      {
+        "id": "c20",
+        "category": "unverified",
+        "text": "Cells with the additive kept 91 percent of their capacity",
+        "expected": "UNVERIFIED",
+        "actual": "UNVERIFIED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "none",
+        "explanation": [
+          "every piece of attached evidence was unusable (unresolvable citation or unreliable extraction)",
+          "1 citation(s) could not be resolved and were not counted"
+        ],
+        "note": "only an unresolvable citation is attached and no search is run"
+      },
+      {
+        "id": "c21",
+        "category": "unverified",
+        "text": "Cells fade",
+        "expected": "UNVERIFIED",
+        "actual": "UNVERIFIED",
+        "correct": true,
+        "known_limitation": false,
+        "conflicting": false,
+        "strength": "none",
+        "explanation": [
+          "the claim has too few content words to compare against text"
+        ],
+        "note": "too few content words to compare"
+      }
+    ],
+    "confusion_matrix": {
+      "SUPPORTED": {
+        "SUPPORTED": 5,
+        "PARTIALLY_SUPPORTED": 0,
+        "CONTRADICTED": 0,
+        "INSUFFICIENT_EVIDENCE": 1,
+        "UNVERIFIED": 0
+      },
+      "PARTIALLY_SUPPORTED": {
+        "SUPPORTED": 0,
+        "PARTIALLY_SUPPORTED": 3,
+        "CONTRADICTED": 0,
+        "INSUFFICIENT_EVIDENCE": 0,
+        "UNVERIFIED": 0
+      },
+      "CONTRADICTED": {
+        "SUPPORTED": 1,
+        "PARTIALLY_SUPPORTED": 1,
+        "CONTRADICTED": 4,
+        "INSUFFICIENT_EVIDENCE": 0,
+        "UNVERIFIED": 0
+      },
+      "INSUFFICIENT_EVIDENCE": {
+        "SUPPORTED": 0,
+        "PARTIALLY_SUPPORTED": 0,
+        "CONTRADICTED": 0,
+        "INSUFFICIENT_EVIDENCE": 2,
+        "UNVERIFIED": 0
+      },
+      "UNVERIFIED": {
+        "SUPPORTED": 0,
+        "PARTIALLY_SUPPORTED": 0,
+        "CONTRADICTED": 0,
+        "INSUFFICIENT_EVIDENCE": 0,
+        "UNVERIFIED": 4
+      }
+    },
+    "accuracy_excluding_known_limitations": {
+      "claims": 18,
+      "correct": 18,
+      "accuracy": 1.0
+    },
+    "accuracy_on_known_limitations": {
+      "claims": 3,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "accuracy_by_expected_status": {
+      "SUPPORTED": {
+        "claims": 5,
+        "correct": 5,
+        "accuracy": 1.0
+      },
+      "PARTIALLY_SUPPORTED": {
+        "claims": 3,
+        "correct": 3,
+        "accuracy": 1.0
+      },
+      "CONTRADICTED": {
+        "claims": 4,
+        "correct": 4,
+        "accuracy": 1.0
+      },
+      "INSUFFICIENT_EVIDENCE": {
+        "claims": 2,
+        "correct": 2,
+        "accuracy": 1.0
+      },
+      "UNVERIFIED": {
+        "claims": 4,
+        "correct": 4,
+        "accuracy": 1.0
+      }
+    },
+    "accuracy_all": {
+      "claims": 21,
+      "correct": 18,
+      "accuracy": 0.8571
+    },
+    "novelty": [
+      {
+        "id": "n1",
+        "statement": "Cells with the additive retained more capacity than cells without it after fast charging",
+        "corpus": "full",
+        "expected": "Similar prior work identified",
+        "actual": "Similar prior work identified",
+        "correct": true,
+        "known_limitation": false,
+        "closest": [
+          "doc-3bd6201d8892",
+          "doc-cc3a0e3b213f"
+        ],
+        "note": ""
+      },
+      {
+        "id": "n2",
+        "statement": "Perovskite films degrade under ultraviolet light exposure in humid air",
+        "corpus": "full",
+        "expected": "Potentially novel within searched corpus",
+        "actual": "Potentially novel within searched corpus",
+        "correct": true,
+        "known_limitation": false,
+        "closest": [],
+        "note": ""
+      },
+      {
+        "id": "n3",
+        "statement": "Perovskite films degrade under ultraviolet light exposure in humid air",
+        "corpus": "tiny",
+        "expected": "Insufficient literature coverage",
+        "actual": "Insufficient literature coverage",
+        "correct": true,
+        "known_limitation": false,
+        "closest": [],
+        "note": "the same statement against a two-document corpus: 'nothing found' says nothing about novelty"
+      },
+      {
+        "id": "n4",
+        "statement": "Colonies bleached earlier after phosphorus fertilisation of the surrounding sediment",
+        "corpus": "full",
+        "expected": "Novelty unclear",
+        "actual": "Novelty unclear",
+        "correct": true,
+        "known_limitation": false,
+        "closest": [
+          "doc-096499bccefe",
+          "doc-0033eee271c9"
+        ],
+        "note": "overlaps with the bleaching document on a few words only; a lexical overlap this partial is labelled unclear, not similar"
+      }
+    ],
+    "novelty_accuracy_excluding_known_limitations": {
+      "claims": 4,
+      "correct": 4,
+      "accuracy": 1.0
+    },
+    "novelty_accuracy_on_known_limitations": {
+      "claims": 0,
+      "correct": 0,
+      "accuracy": null
+    },
+    "dataset": {
+      "documents": 7,
+      "claims": 21,
+      "novelty_cases": 4
+    }
+  },
+  "limitations": [
+    "SYNTHETIC set: invented documents, author-written claims and author-assigned expected statuses; not scientific validation.",
+    "Claims share vocabulary with the documents on purpose, because the verifier is lexical; accuracy here is an upper bound for how a lexical check behaves on clean text.",
+    "Statuses are lexical evidence-strength labels: a paraphrase is not connected to its source, swapped roles look identical, and 'reduced' vs 'eliminated' are not distinguished. Those cases are in the set (known_limitation) and are reported separately.",
+    "No real-source examples are bundled; none were fabricated. See datasets/verification_eval/README.md."
+  ],
+  "labels": "synthetic: invented documents and author-assigned expected statuses; not scientific validation"
+}

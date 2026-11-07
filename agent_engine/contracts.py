@@ -53,6 +53,9 @@ class ProposedTask(_Strict):
     input: dict[str, Any] = Field(default_factory=dict)
     depends_on: list[str] = Field(default_factory=list)  # sibling proposal keys or existing task ids
     followup: bool = False  # True = another refinement round (counts against max_iterations)
+    # Agent types whose still-pending tasks must also wait for this one (e.g. the report waits for a verification follow-up).
+    # Only agents whose policy lists the type in `may_block` can use it; it can only add dependencies, so no cycle can form.
+    blocks: list[str] = Field(default_factory=list)
 
 
 class ModelNote(_Strict):
@@ -89,6 +92,7 @@ class RunLimits(_Strict):
     max_retries: int = Field(default=2, ge=0)  # per task, after the first attempt
     task_timeout_s: float = Field(default=60.0, gt=0)
     max_concurrency: int = Field(default=4, gt=0)
+    max_evidence_rounds: int = Field(default=1, ge=0)  # times the Supervisor may request more retrieval + re-verification of claims
     max_replans: int = Field(default=1, ge=0)  # times the Supervisor may be asked to replan after a failed discovery task
     retry_backoff_s: float = Field(default=0.5, ge=0)  # attempt n waits backoff * 2**(n-1)
 

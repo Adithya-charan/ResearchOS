@@ -9,7 +9,8 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy import select
 
-from agent_engine.reporting import report_from_store
+from agent_engine.reporting import render_structured_markdown, report_from_store
+from api import claims_service
 from api.db import utcnow
 from api.deps import DB, CurrentAuth, audit
 from api.models import Report, ReportVersion
@@ -88,6 +89,12 @@ def generate_report(run_id: str, request: Request, auth: CurrentAuth, db: DB):
             if c:
                 p = index.get(c["passage_id"]) if index is not None else None
                 c["source_text"] = " ".join(p.text.split()) if p else None
+    for sec in content.get("structured", {}).get("sections", []):  # every structured citation carries the stored passage text
+        for block in sec["blocks"]:
+            for c in block["citations"]:
+                p = index.get(c["passage_id"]) if index is not None and c.get("passage_id") else None
+                c["source_text"] = " ".join(p.text.split()) if p else None
+                c["resolvable"] = p is not None
     content["generated_from"] = {"run_id": run.id, "question": run.question, "workflow": run.workflow}
     r = Report(project_id=run.project_id, owner_id=auth.user.id, run_id=run.id, content=content,
                content_sha256=content_hash(content), editable=copy.deepcopy(EMPTY_EDITABLE))
@@ -96,6 +103,10 @@ def generate_report(run_id: str, request: Request, auth: CurrentAuth, db: DB):
     db.add(ReportVersion(report_id=r.id, version=1, editor_id=auth.user.id, summary="generated", editable=r.editable))
     db.commit()
     audit(db, request, "report_generate", auth.user.id, r.id, run=run.id)
+    try:  # the report's claims become queryable records (idempotent); a failure here must not lose the report
+        claims_service.persist_run_claims(db, rt, run, auth.user.id)
+    except Exception:  # pragma: no cover - defensive
+        db.rollback()
     return JSONResponse(_view_json(r), status_code=201)
 
 
@@ -113,6 +124,28 @@ def list_reports(project_id: str, auth: CurrentAuth, db: DB):
 @router.get("/reports/{report_id}")
 def read_report(report_id: str, auth: CurrentAuth, db: DB):
     return _view(owned_report(db, report_id, auth.user.id))
+
+
+def _structured(r: Report) -> dict:
+    s = r.content.get("structured")
+    if s is None:
+        raise HTTPException(404, "this report was generated before the structured format existed")
+    return s
+
+
+@router.get("/reports/{report_id}/structured")
+def read_structured(report_id: str, auth: CurrentAuth, db: DB):
+    """The 18-section view of the immutable generated content (every block cites a stored passage or is labelled UNVERIFIED)."""
+    r = owned_report(db, report_id, auth.user.id)
+    return {"report_id": r.id, "version": r.version, "content_sha256": r.content_sha256, "structured": _structured(r),
+            "verification": r.content.get("verification", {}).get("history", [])}
+
+
+@router.get("/reports/{report_id}/structured.md")
+def read_structured_markdown(report_id: str, auth: CurrentAuth, db: DB):
+    r = owned_report(db, report_id, auth.user.id)
+    _export_guard(r)
+    return _download(render_structured_markdown(_structured(r)), "text/markdown; charset=utf-8", r, "md")
 
 
 @router.patch("/reports/{report_id}")

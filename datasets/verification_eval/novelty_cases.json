@@ -1,0 +1,38 @@
+{
+  "tiny_corpus_docs": [
+    "v1_additive.md",
+    "v3_bleaching.md"
+  ],
+  "cases": [
+    {
+      "id": "n1",
+      "statement": "Cells with the additive retained more capacity than cells without it after fast charging",
+      "expected": "Similar prior work identified",
+      "corpus": "full",
+      "known_limitation": false
+    },
+    {
+      "id": "n2",
+      "statement": "Perovskite films degrade under ultraviolet light exposure in humid air",
+      "expected": "Potentially novel within searched corpus",
+      "corpus": "full",
+      "known_limitation": false
+    },
+    {
+      "id": "n3",
+      "statement": "Perovskite films degrade under ultraviolet light exposure in humid air",
+      "expected": "Insufficient literature coverage",
+      "corpus": "tiny",
+      "known_limitation": false,
+      "note": "the same statement against a two-document corpus: 'nothing found' says nothing about novelty"
+    },
+    {
+      "id": "n4",
+      "statement": "Colonies bleached earlier after phosphorus fertilisation of the surrounding sediment",
+      "expected": "Novelty unclear",
+      "corpus": "full",
+      "known_limitation": false,
+      "note": "overlaps with the bleaching document on a few words only; a lexical overlap this partial is labelled unclear, not similar"
+    }
+  ]
+}

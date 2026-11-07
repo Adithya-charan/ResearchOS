@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 from agent_engine.agents.base import Agent, AgentContext
+from agent_engine.agents.evidence import merged_verification
 from agent_engine.contracts import AgentOutput, ProposedTask, TaskSpec
 from agent_engine.errors import NonRetryableError
 from research.bm25.analysis import analyze, phrase_chunks, term_surface_forms
 
 MAX_FACETS = 3  # sub-queries besides the full-question query
 MAX_TERMS = 12
+MAX_FOLLOWUP_QUERIES = 3  # extra searches per evidence follow-up round
 
 
 class SupervisorAgent(Agent):
@@ -21,6 +23,8 @@ class SupervisorAgent(Agent):
     async def run(self, ctx: AgentContext, task: TaskSpec) -> AgentOutput:
         if task.input.get("replan_for"):
             return self._replan(ctx, task)
+        if task.input.get("evidence_review"):
+            return self._evidence_review(ctx, task)
         question = str(task.input.get("question") or ctx.question).strip()
         if not question:
             raise NonRetryableError("empty research question")
@@ -71,6 +75,60 @@ class SupervisorAgent(Agent):
             else:
                 out.uncertainties.append("Model note skipped (token budget exhausted or model unavailable).")
         return out
+
+    def _evidence_review(self, ctx: AgentContext, task: TaskSpec) -> AgentOutput:
+        """After a verification pass: if checkable claims are still only partially supported, lack evidence or are contradicted,
+        request another bounded round (a few extra searches built from the words of those claims, then re-verification of just
+        those claims). The budget is `max_evidence_rounds`; when it is spent the Supervisor records what remains unresolved and stops."""
+        merged = merged_verification(task.dependency_outputs.values())
+        done = int(task.input.get("evidence_round", 0))
+        budget = ctx.limits.max_evidence_rounds
+        pending = merged["needs_followup"]
+        terms = list(task.input.get("terms") or [])
+        base = {"terms": terms, "queries": [], "stop_criteria": {"max_evidence_rounds": budget, "rounds_used": done}}
+
+        def result(status: str, summary: str, action: str, proposals=None, queries=None, unc=None) -> AgentOutput:
+            return AgentOutput(
+                task_id=task.id, agent_type=self.agent_type, status=status, summary=summary, proposed_tasks=proposals or [],
+                findings=[f"{p['key']} {p['status']}" for p in pending[:10]], uncertainties=unc or [],
+                data={**base, "queries": queries or [],
+                      "evidence_review": {"action": action, "round": done, "budget": budget, "unresolved": pending,
+                                          "verification_rounds": merged["rounds"]}})
+
+        if not pending:
+            return result("ok", "Every checkable claim is supported or has been examined; no further retrieval was requested.", "none")
+        if done >= budget:
+            return result("insufficient_evidence",
+                          f"{len(pending)} claim(s) are still not fully supported and the follow-up budget ({budget}) is spent.",
+                          "budget_exhausted", unc=[f"{len(pending)} claim(s) remain partially supported, contradicted or without "
+                                                   f"sufficient evidence after {done} follow-up round(s); they are reported as such."])
+        searched = {str(o.data.get("query", "")).strip().lower() for o in task.dependency_outputs.values()
+                    if o.agent_type == "discovery"}
+        queries: list[str] = []
+        for c in pending:
+            q = " ".join(s for _, s in term_surface_forms(c["text"], limit=8))
+            if q and q.lower() not in searched and q not in queries:
+                queries.append(q)
+            if len(queries) >= MAX_FOLLOWUP_QUERIES:
+                break
+        if not queries:
+            return result("insufficient_evidence", f"{len(pending)} claim(s) are not fully supported and no new query is available.",
+                          "no_new_query", unc=["Follow-up searches built from the claim wording were already run."])
+        keys = [c["key"] for c in pending]
+        shared = {"question": task.input.get("question") or ctx.question, "terms": terms, "surface": task.input.get("surface") or {}}
+        proposals = [ProposedTask(key=f"evfu{i}", agent_type="discovery", title=f"Evidence follow-up: {q[:80]}",
+                                  input={"query": q, "label": "evidence follow-up", "k": 10}) for i, q in enumerate(queries)]
+        proposals.append(ProposedTask(
+            key="reverify", agent_type="verifier", title="Re-verify claims after follow-up retrieval",
+            depends_on=[*task.depends_on, *[p.key for p in proposals]], blocks=["reviewer", "synthesis"],
+            input={**shared, "round": done + 2, "claim_keys": keys}))
+        proposals.append(ProposedTask(
+            key="evreview", agent_type="supervisor", title="Review evidence after re-verification",
+            depends_on=[*task.depends_on, "reverify"], blocks=["reviewer", "synthesis"],
+            input={**shared, "evidence_review": True, "evidence_round": done + 1}))
+        return result("ok", f"Requested follow-up retrieval ({len(queries)} search(es)) and re-verification of {len(keys)} claim(s) "
+                            f"(round {done + 1} of at most {budget}).", "follow_up", proposals, queries,
+                      ["Follow-up searches are lexical and may not find evidence that uses different words."])
 
     def _replan(self, ctx: AgentContext, task: TaskSpec) -> AgentOutput:
         """A discovery task failed permanently. Try once with a broader query (the last term dropped) and re-run the

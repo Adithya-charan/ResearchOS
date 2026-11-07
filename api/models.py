@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.db import Base, utcnow
@@ -162,3 +162,75 @@ class ResearchJob(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     __table_args__ = (Index("ix_research_jobs_claim", "status", "available_at"),)
+
+
+class Claim(Base):
+    """A research claim. Agent-made claims keep their originating agent and task; user-made claims have source='user'.
+    `status` is the latest verification outcome (UNVERIFIED until one has run); each outcome is kept in claim_verifications."""
+    __tablename__ = "claims"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: new_id("clm"))
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str | None] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), nullable=True, index=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    claim_key: Mapped[str | None] = mapped_column(String(120), nullable=True)  # the engine key, e.g. literature:s003
+    text: Mapped[str] = mapped_column(Text)
+    claim_type: Mapped[str] = mapped_column(String(16))
+    origin_agent: Mapped[str] = mapped_column(String(32), default="user")
+    origin_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source: Mapped[str] = mapped_column(String(8), default="agent")  # agent | user
+    status: Mapped[str] = mapped_column(String(24), default="UNVERIFIED", index=True)
+    strength: Mapped[dict] = mapped_column(JSON, default=dict)
+    explanation: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    evidence: Mapped[list["ClaimEvidence"]] = relationship(cascade="all, delete-orphan", order_by="ClaimEvidence.id")
+    verifications: Mapped[list["ClaimVerification"]] = relationship(cascade="all, delete-orphan", order_by="ClaimVerification.id")
+    __table_args__ = (UniqueConstraint("run_id", "claim_key", name="uq_claims_run_key"),)
+
+
+class ClaimEvidence(Base):
+    """A stored passage associated with a claim. Page, quote and document come from the stored passage, never from the caller.
+    origin='user' rows were attached by a person and survive re-verification; origin='verification' rows are rewritten by it."""
+    __tablename__ = "claim_evidence"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    claim_id: Mapped[str] = mapped_column(ForeignKey("claims.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(14), default="contextual")  # supporting | contradicting | contextual
+    directness: Mapped[str | None] = mapped_column(String(8), nullable=True)  # direct | indirect
+    document_id: Mapped[str] = mapped_column(String(64))
+    passage_id: Mapped[str] = mapped_column(String(80))
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quote: Mapped[str] = mapped_column(Text, default="")
+    retrieval_method: Mapped[str] = mapped_column(String(20), default="attached")
+    retrieval_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    coverage: Mapped[float | None] = mapped_column(Float, nullable=True)
+    citation_valid: Mapped[int] = mapped_column(Integer, default=1)
+    reason: Mapped[str] = mapped_column(Text, default="")
+    origin: Mapped[str] = mapped_column(String(14), default="verification")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class ClaimVerification(Base):
+    __tablename__ = "claim_verifications"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    claim_id: Mapped[str] = mapped_column(ForeignKey("claims.id", ondelete="CASCADE"), index=True)
+    round: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(24))
+    strength: Mapped[dict] = mapped_column(JSON, default=dict)
+    explanation: Mapped[list] = mapped_column(JSON, default=list)
+    evidence: Mapped[list] = mapped_column(JSON, default=list)  # snapshot of the evidence at that time, incl. invalid citations
+    verifier: Mapped[str] = mapped_column(String(40), default="")
+    requested_by: Mapped[str] = mapped_column(String(32), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class NoveltyAssessmentRow(Base):
+    __tablename__ = "novelty_assessments"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: new_id("nov"))
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str | None] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), nullable=True, index=True)
+    claim_id: Mapped[str | None] = mapped_column(ForeignKey("claims.id", ondelete="SET NULL"), nullable=True, index=True)
+    statement: Mapped[str] = mapped_column(Text)
+    label: Mapped[str] = mapped_column(String(60))
+    content: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

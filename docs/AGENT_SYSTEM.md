@@ -7,7 +7,7 @@ contracts; an optional, budgeted local model adds untrusted text notes only (nev
 
 | Agent type | Role | Reads | Produces (`data`) | Tools | May propose |
 |---|---|---|---|---|---|
-| `supervisor` | Supervisor | question | terms, queries, stop_criteria (plan); on a failed search, a replan | none | discovery, critic |
+| `supervisor` | Supervisor | question | terms, queries, stop_criteria (plan); on a failed search, a replan; evidence review (follow-up decision) | none | discovery, critic, verifier, supervisor (may also block reviewer, synthesis) |
 | `discovery` | Literature Discovery | query | hits with citations | `corpus.search` | none |
 | `critic` | Evidence Critic | discovery output | assessment (accepted/rejected evidence, sufficiency) | `corpus.get_passage` | discovery, critic, and the workflow agents |
 | `literature` | Literature Analysis | critic | documents, statements (methods/results/limitations, verbatim) | `corpus.document_passages` | none |
@@ -15,7 +15,7 @@ contracts; an optional, budgeted local model adds untrusted text notes only (nev
 | `hypothesis` | Hypothesis | gap, literature | falsifiable hypotheses with assumptions | none | none |
 | `experiment_design` | Experiment Design | hypothesis, literature, gap | reproducible experiment **plans** (no results) | none | none |
 | `reviewer` | Critical Reviewer | critic, hypothesis, plans, literature | severity-graded review findings (never "approved") | none | none |
-| `verifier` | Verification | literature, gap, hypothesis | claim records with checks and statuses | `corpus.get_passage`, `corpus.verify_passage` | none |
+| `verifier` | Verification | literature, gap, hypothesis | claim records, `verification` (status, strength, evidence per claim), `novelty`, `round` | `corpus.get_passage`, `corpus.verify_passage`, `corpus.evidence_search` | none |
 | `synthesis` | Synthesis | all of the above | report | none | none |
 | `experiment` | Experiment Runner | approved spec | manifest (sandbox, human approval required) | none | none |
 
@@ -49,6 +49,17 @@ Details of the index are in `docs/RETRIEVAL_SYSTEM.md`. Discovery searches only 
 extracts verbatim sentences with passage ids. Gap and Hypothesis cite evidence only when it exists (stated limitations, single-source
 terms); otherwise their output says so. The Verifier resolves each extracted citation itself; the Reviewer and Experiment Design cite only
 resolvable passages. All of this is lexical: no semantic synonym matching, and "the literature" means the uploaded library only.
+
+## Evidence verification (P6, see `docs/EVIDENCE_VERIFICATION.md`)
+
+Workflow order is now: critic -> literature -> gap -> hypothesis -> experiment design -> **verifier** -> **evidence review
+(supervisor)** -> reviewer -> synthesis. The Verifier checks claims with the read-only `corpus.evidence_search` tool (full passage
+text; `corpus.search` stays Discovery-only) and assigns SUPPORTED / PARTIALLY_SUPPORTED / CONTRADICTED / INSUFFICIENT_EVIDENCE /
+UNVERIFIED with a deterministic lexical rule. The Supervisor's evidence review may add at most `max_evidence_rounds` (default 1) rounds
+of "evidence follow-up" discovery, re-verification and a further review; it records `budget_exhausted` or `no_new_query` when it stops.
+`ProposedTask.blocks` (permitted per agent by `may_block`) makes the reviewer and synthesis tasks wait for such a chain; the engine adds
+the dependency in the same transaction that creates the tasks. The Reviewer turns contradicted, unsupported, unverifiable and partially
+supported claims, and similar-prior-work novelty results, into findings.
 
 ## What the agents are not
 
