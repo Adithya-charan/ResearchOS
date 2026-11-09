@@ -4,11 +4,12 @@ Everything is derived from real artifacts (see api/modellab_service.py). Clients
 send paths, and lifecycle evidence is never taken from a request."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import Depends, APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from agent_engine.model_provider import (AGENT_ROLES, STAGE_DESCRIPTIONS, NoValidatedModelError, ProviderSelection, capability_of,
                                          deterministic_status)
+from api.ratelimit import rate_limit
 from api.deps import DB, CurrentAuth, audit
 from api.model_service import (NOTICE, ModelNotFound, _read_json, list_checkpoints, pick_checkpoint, read_metrics, tokenizer_dir_for)
 from api.modellab_service import LICENSES, LabError, ModelLab, is_admin, selection_view
@@ -143,7 +144,7 @@ def change_lifecycle(model_id: str, body: LifecycleIn, request: Request, auth: C
 
 
 # ------------------------------------------------------------------ evaluation
-@router.post("/models/{model_id}/evaluate", status_code=202)
+@router.post("/models/{model_id}/evaluate", status_code=202, dependencies=[Depends(rate_limit("evaluate"))])
 def evaluate(model_id: str, request: Request, auth: CurrentAuth, db: DB):
     _entry_for(request, db, auth, model_id)
     try:

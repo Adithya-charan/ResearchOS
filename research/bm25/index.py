@@ -54,10 +54,15 @@ def split_phrases(query: str) -> tuple[list[str], str]:
 def contains_phrase(text: str, phrase: str) -> bool:
     """True if the phrase's words occur contiguously, in order, in the text (case-insensitive, punctuation ignored, no
     stemming and no stopword removal: 'state of charge' will not match 'state charge')."""
-    words = [w.lower() for w in _WORD_RE.findall(text)]
     target = [w.lower() for w in _WORD_RE.findall(phrase)]
     n = len(target)
-    return n > 0 and any(words[i:i + n] == target for i in range(len(words) - n + 1))
+    if n == 0:
+        return False
+    lowered = text.lower()
+    if not all(w in lowered for w in target):  # cheap necessary condition: skips tokenising the many passages that cannot match
+        return False
+    words = [w.lower() for w in _WORD_RE.findall(text)]
+    return any(words[i:i + n] == target for i in range(len(words) - n + 1))
 
 
 class BM25Index:

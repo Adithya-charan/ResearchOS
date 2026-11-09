@@ -139,6 +139,16 @@ def test_docx_with_a_dtd_is_refused(tmp_path):
     assert code_of(extract_file, path, isolate=False) == "unsafe"
 
 
+def test_docx_dtd_hidden_behind_a_long_comment_prolog_is_still_refused(tmp_path):
+    """P10: the DTD check used to look only at the first 4 KiB, so padding the prolog with a comment bypassed it."""
+    path = tmp_path / "padded.docx"
+    xml = (b'<?xml version="1.0"?><!--' + b"x" * 8000 + b'--><!DOCTYPE d [<!ENTITY a "aaaaaaaaaa">]><w:document xmlns:w="http://schemas.'
+           b'openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>&a;</w:t></w:r></w:p></w:body></w:document>')
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("word/document.xml", xml)
+    assert code_of(extract_file, path, isolate=False) == "unsafe"
+
+
 def test_docx_with_no_text_is_an_error_not_an_empty_document(tmp_path):
     assert code_of(extract_file, make_docx(tmp_path / "blank.docx", []), isolate=False) == "no_text"
 

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from agent_engine.state import dburl
@@ -13,6 +13,46 @@ ROOT = Path(__file__).resolve().parents[1]
 def _bool(name: str, default: bool) -> bool:
     v = os.environ.get(name)
     return default if v is None else v.strip().lower() in {"1", "true", "yes", "on"}
+
+
+# Per-user rate limits (count, window seconds) for expensive endpoints; see api/ratelimit.py. RESEARCHOS_RATE_<NAME>="count/window" or "off".
+RATE_DEFAULTS: dict[str, tuple[int, int]] = {
+    "upload": (120, 600), "run_create": (20, 3600), "search": (120, 60), "verify": (60, 600), "report": (30, 600),
+    "experiment": (10, 3600), "evaluate": (10, 3600), "reprocess": (30, 600),
+}
+
+
+# Settings an operator may override with an integer environment variable.
+_INT_ENV = {
+    "max_upload_bytes": "RESEARCHOS_MAX_UPLOAD_BYTES", "max_documents_per_project": "RESEARCHOS_MAX_DOCUMENTS_PER_PROJECT",
+    "max_corpus_bytes": "RESEARCHOS_MAX_CORPUS_BYTES", "worker_concurrency": "RESEARCHOS_WORKER_CONCURRENCY",
+    "session_ttl_s": "RESEARCHOS_SESSION_TTL_S", "min_password_length": "RESEARCHOS_MIN_PASSWORD_LENGTH",
+    "login_attempts": "RESEARCHOS_LOGIN_ATTEMPTS", "login_window_s": "RESEARCHOS_LOGIN_WINDOW_S",
+    "register_attempts": "RESEARCHOS_REGISTER_ATTEMPTS", "max_projects_per_user": "RESEARCHOS_MAX_PROJECTS_PER_USER",
+    "max_active_runs_per_user": "RESEARCHOS_MAX_ACTIVE_RUNS_PER_USER", "sse_max_streams_per_user": "RESEARCHOS_SSE_MAX_STREAMS_PER_USER",
+    "sse_max_streams_total": "RESEARCHOS_SSE_MAX_STREAMS_TOTAL",
+}
+
+
+def parse_rate(text: str) -> tuple[int, int] | None:
+    t = text.strip().lower()
+    if t in {"off", "none", "disabled"}:
+        return None
+    count, _, window = t.partition("/")
+    out = (int(count), int(window))
+    if out[0] < 1 or out[1] < 1:
+        raise ValueError(f"invalid rate limit {text!r}: use '<count>/<window seconds>' or 'off'")
+    return out
+
+
+def rates_from_env(env=None) -> dict[str, tuple[int, int] | None]:
+    env = os.environ if env is None else env
+    out: dict[str, tuple[int, int] | None] = dict(RATE_DEFAULTS)
+    for name in RATE_DEFAULTS:
+        raw = env.get(f"RESEARCHOS_RATE_{name.upper()}")
+        if raw:
+            out[name] = parse_rate(raw)
+    return out
 
 
 @dataclass
@@ -89,7 +129,23 @@ class Settings:
     sse_max_seconds: float = 600.0  # a stream ends after this long; EventSource reconnects with Last-Event-ID
     sse_interval_s: float = 0.5
     sse_heartbeat_s: float = 15.0
+    rate_limits: dict = field(default_factory=lambda: dict(RATE_DEFAULTS))  # per-user limits, see RATE_DEFAULTS
+    enable_docs: bool = True  # serve /docs and /openapi.json (Swagger UI); switch off in production (RESEARCHOS_ENABLE_DOCS=false)
+    hsts: bool = False  # send Strict-Transport-Security (only when the site is served over HTTPS; implied by cookie_secure)
     sse_reauth_s: float = 30.0  # how often a live stream re-checks that the viewer's session is still valid
+
+    def warnings(self) -> list[str]:
+        """Risky-but-legal combinations, logged at startup. A wildcard origin is refused outright by `from_env`."""
+        out = []
+        if any(o.startswith("https://") for o in self.allowed_origins) and not self.cookie_secure:
+            out.append("an https origin is allowed but RESEARCHOS_COOKIE_SECURE is false: the session cookie would also travel over http")
+        if self.cookie_secure and not self.hsts:
+            out.append("cookies are Secure but HSTS is off (RESEARCHOS_HSTS=true is recommended behind TLS)")
+        if self.allow_weak_sandbox:
+            out.append("RESEARCHOS_ALLOW_WEAK_SANDBOX is on: experiments run WITHOUT isolation (development only)")
+        if self.min_password_length < 12:
+            out.append("minimum password length is below 12")
+        return out
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -129,6 +185,14 @@ class Settings:
             s.models_dir = Path(os.environ["RESEARCHOS_MODELS_DIR"])
         s.demo_corpus = _bool("RESEARCHOS_DEMO_CORPUS", s.demo_corpus)
         s.cookie_secure = _bool("RESEARCHOS_COOKIE_SECURE", s.cookie_secure)
+        for attr, var in _INT_ENV.items():  # numeric limits an operator may tune
+            if var in os.environ:
+                setattr(s, attr, int(os.environ[var]))
+        s.enable_docs = _bool("RESEARCHOS_ENABLE_DOCS", s.enable_docs)
+        s.hsts = _bool("RESEARCHOS_HSTS", s.cookie_secure)
+        s.rate_limits = rates_from_env()
         if "RESEARCHOS_ALLOWED_ORIGINS" in os.environ:
             s.allowed_origins = tuple(o.strip() for o in os.environ["RESEARCHOS_ALLOWED_ORIGINS"].split(",") if o.strip())
+            if any(o == "*" or "*" in o for o in s.allowed_origins):
+                raise ValueError("RESEARCHOS_ALLOWED_ORIGINS must list exact origins; a wildcard would let any site make credentialed writes")
         return s

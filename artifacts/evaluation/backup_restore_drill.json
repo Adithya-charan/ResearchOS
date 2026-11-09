@@ -1,0 +1,15 @@
+{
+  "source_search_hits": 1,
+  "backup_seconds": 0.34,
+  "backup_bytes": 63615,
+  "archive_lists_tables": true,
+  "restore_seconds": 0.64,
+  "row_counts_equal": true,
+  "tables_compared": 27,
+  "rows_compared": 9,
+  "migrations_at_head_after_restore": true,
+  "login_after_restore": true,
+  "project_after_restore": true,
+  "search_after_restore": true,
+  "all_passed": true
+}

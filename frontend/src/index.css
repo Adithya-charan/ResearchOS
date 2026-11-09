@@ -64,3 +64,6 @@ mark.hl { background: var(--hl); color: inherit; border-radius: 2px; padding: 0 
   main { padding: 0 !important; overflow: visible !important; }
   .reading { max-width: none; }
 }
+
+/* The graph library removes the outline from its focusable node wrappers; keyboard users still need to see where they are. */
+.react-flow .react-flow__node:focus-visible, .react-flow .react-flow__node:focus { outline: 2px solid var(--accent) !important; outline-offset: 2px; border-radius: 6px; }

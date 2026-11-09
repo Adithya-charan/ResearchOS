@@ -4,9 +4,10 @@ import tempfile
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import Depends, APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 
 from api.corpus_service import UploadRejected, injection_hits
+from api.ratelimit import rate_limit
 from api.deps import DB, CurrentAuth, audit
 from api.routes.projects import owned_project
 from research.corpus import SearchFilters
@@ -51,7 +52,7 @@ def _doc_or_404(corpus, doc_id: str):
     return rec
 
 
-@router.post("/documents", status_code=201)
+@router.post("/documents", status_code=201, dependencies=[Depends(rate_limit("upload"))])
 def upload_document(project_id: str, request: Request, auth: CurrentAuth, db: DB, file: UploadFile = File(...),
                     source: str | None = Form(default=None, max_length=300),
                     license: str | None = Form(default=None, max_length=100),
@@ -148,7 +149,7 @@ def delete_document(project_id: str, doc_id: str, request: Request, auth: Curren
     audit(db, request, "document_delete", auth.user.id, doc_id)
 
 
-@router.post("/documents/{doc_id}/reprocess")
+@router.post("/documents/{doc_id}/reprocess", dependencies=[Depends(rate_limit("reprocess"))])
 def reprocess_document(project_id: str, doc_id: str, request: Request, auth: CurrentAuth, db: DB):
     p = owned_project(db, project_id, auth.user.id)
     rt, mgr = request.app.state.runtime, request.app.state.corpora
@@ -167,7 +168,7 @@ def reprocess_document(project_id: str, doc_id: str, request: Request, auth: Cur
     return body
 
 
-@router.get("/search")
+@router.get("/search", dependencies=[Depends(rate_limit("search"))])
 def search(project_id: str, request: Request, auth: CurrentAuth, db: DB, q: str = Query(min_length=2, max_length=500),
            k: int = Query(8, ge=1, le=50), year_min: int | None = Query(None, ge=1000, le=3000),
            year_max: int | None = Query(None, ge=1000, le=3000), exclude_low_quality: bool = False,

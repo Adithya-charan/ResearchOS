@@ -63,7 +63,7 @@ function Graph({ tasks, selected, onSelect }: { tasks: Task[]; selected: string 
   }, [tasks, selected]);
   return (
     <div className="h-[760px] rounded-lg border border-line bg-surface" role="region" aria-label={`Task dependency graph with ${tasks.length} tasks. The same data is listed in the table below.`}>
-      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.12 }} minZoom={0.3} nodesDraggable={false} nodesConnectable={false} onNodeClick={(_, n) => onSelect(n.id)} proOptions={{ hideAttribution: true }}>
+      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.12 }} minZoom={0.3} nodesDraggable={false} nodesConnectable={false} edgesFocusable={false} onNodeClick={(_, n) => onSelect(n.id)} proOptions={{ hideAttribution: true }}>
         <Background /><Controls showInteractive={false} />
       </ReactFlow>
     </div>

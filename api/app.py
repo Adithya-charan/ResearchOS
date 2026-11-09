@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import contextlib
+import gzip
 import logging
 import uuid
 from collections.abc import Callable
@@ -41,6 +42,22 @@ def prepare_schema(engine, settings: Settings) -> None:
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 
 
+PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+
+
+def baseline_headers(path: str, hsts: bool) -> dict[str, str]:
+    """Headers every response carries unless the page sets its own (the SPA and /lab set a CSP that allows their own assets).
+    /docs (Swagger UI) loads its viewer from a CDN, so it is the one path left without the API's `default-src 'none'`."""
+    h = {"Referrer-Policy": "no-referrer", "Permissions-Policy": PERMISSIONS_POLICY, "X-Frame-Options": "DENY",
+         "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Resource-Policy": "same-origin"}
+    if not path.startswith(("/docs", "/openapi.json")):
+        h["Content-Security-Policy"] = API_CSP
+    if hsts:
+        h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return h
+
+
 def create_app(settings: Settings | None = None, index_provider: Callable[[str], BM25Index] | None = None,
                scanner: Scanner | None = None, sandbox_factory=None) -> FastAPI:
     settings = settings or Settings.from_env()
@@ -52,7 +69,10 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
         app.state.worker.stop()  # running jobs are handed back, not lost
         app.state.training.stop_all()  # training children must not outlive the API: they checkpoint and exit, or are killed
 
-    app = FastAPI(title="RESEARCHOS API", version="0.1.0", docs_url="/docs", redoc_url=None, lifespan=lifespan)
+    for w in settings.warnings():
+        log.warning("configuration: %s", w)
+    app = FastAPI(title="RESEARCHOS API", version="0.1.0", redoc_url=None, lifespan=lifespan,
+                  docs_url="/docs" if settings.enable_docs else None, openapi_url="/openapi.json" if settings.enable_docs else None)
     engine = make_engine(settings.database_url, settings.db_pool_size, settings.db_max_overflow)
     prepare_schema(engine, settings)
     app.state.settings = settings
@@ -89,7 +109,10 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
         response = await call_next(request)
         response.headers["X-Request-ID"] = rid
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Cache-Control"] = "no-store"
+        if not request.url.path.startswith("/app/assets/"):  # fingerprinted build assets may set their own caching
+            response.headers["Cache-Control"] = "no-store"
+        for name, value in baseline_headers(request.url.path, settings.hsts).items():  # pages set their own stricter ones first
+            response.headers.setdefault(name, value)
         return response
 
     @app.exception_handler(Exception)
@@ -140,9 +163,12 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
                                               "form-action 'self'; object-src 'none'",
                    "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY"}
 
+    gz_cache: dict[tuple[str, int], bytes] = {}  # (path, mtime_ns) -> gzip bytes; the build is a few MB at most, so this stays small
+    compressible = ("text/", "application/javascript", "application/json", "image/svg+xml")
+
     @app.get("/app", include_in_schema=False)
     @app.get("/app/{spa_path:path}", include_in_schema=False)
-    def spa(spa_path: str = ""):
+    def spa(request: Request, spa_path: str = ""):
         index = spa_dir / "index.html"
         if not index.is_file():
             return JSONResponse({"detail": "the web app is not built: run `npm ci && npm run build` in frontend/"}, status_code=404)
@@ -151,7 +177,17 @@ def create_app(settings: Settings | None = None, index_provider: Callable[[str],
             if "." in Path(spa_path).name:  # a missing asset is a 404, not the app shell
                 return JSONResponse({"detail": "not found"}, status_code=404)
             target = index
-        return Response(target.read_bytes(), media_type=_media_type(target.suffix), headers=spa_headers)
+        headers = dict(spa_headers)
+        if spa_path.startswith("assets/") and target != index:  # Vite fingerprints these names, so they never change
+            headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        media, body = _media_type(target.suffix), target.read_bytes()
+        if len(body) > 1024 and media.startswith(compressible) and "gzip" in request.headers.get("accept-encoding", ""):
+            key = (str(target), target.stat().st_mtime_ns)  # only the SPA's static files are compressed: streaming (SSE) responses never are
+            if key not in gz_cache:
+                gz_cache[key] = gzip.compress(body, compresslevel=6, mtime=0)
+            body = gz_cache[key]
+            headers["Content-Encoding"], headers["Vary"] = "gzip", "Accept-Encoding"
+        return Response(body, media_type=media, headers=headers)
 
     return app
 

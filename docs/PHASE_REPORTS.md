@@ -761,3 +761,33 @@ suite **954 passed, 1 skipped** (944 before + 10 new in `tests/test_p9_web.py`; 
 **Not done / limits:** no password change (no endpoint); gaps, hypotheses and experiment plans are derived read-only from agent outputs, not stored; no
 experiment-creation UI; Model Lab is read-only (P8 training stays postponed); manual keyboard/screen-reader/cross-browser checks not performed; no
 component tests for Workspace/Evidence/Library/Reports beyond e2e; `npm audit` not reviewed; the Dockerfile does not yet build the frontend.
+
+## Master prompt v2, P10 - production hardening, security, Docker, CI/CD (`docs/SECURITY.md`, `DOCKER.md`, `DEPLOYMENT.md`, `CI_CD.md`, `PERFORMANCE.md`, `BACKUP_RECOVERY.md`, `P10_AUDIT.md`)
+
+**Status: implemented, uncommitted.** Start-of-phase audit: `docs/P10_AUDIT.md`. The phase was done in this order: audit, security review, dependency and
+licence audit, headers and rate limits, Dockerfile and compose, CI, performance, backup, accessibility, documentation.
+
+**Security.** Review of the backend and the SPA (`SECURITY.md`): auth, CSRF, authorisation and upload handling were sound. Defects found and fixed: the DOCX
+DTD/entity refusal only scanned the first 4 KiB of a member, so a long comment prolog hid a DTD (regression test, verified to fail on the old code); no rate limits on
+expensive operations (now configurable, per user, `RESEARCHOS_RATE_<NAME>`); no baseline security headers (CSP for the API and SPA, nosniff, frame, referrer,
+permissions, COOP/CORP, HSTS when HTTPS); public `/docs` (now switchable, off in production); wildcard origins accepted (now refused); the agent graph had 100+
+invisible keyboard stops. A behavioural test proves that every documented operation except health/login/register refuses an unauthenticated call.
+
+**Dependencies.** pip-audit on the pinned runtime set: no known vulnerabilities; npm: `npm audit fix` applied (react-router), remaining advisories are
+dev-only (vitest/tinypool, vite/esbuild, typescript-eslint, playwright) plus two production ones triaged as not exploitable here (zod, react-router v6) that
+need breaking upgrades, so they were **not** upgraded. gitleaks over the history: no real secrets (three false positives allow-listed narrowly). **PyMuPDF is
+AGPL-3.0 or commercial: unresolved legal decision; the repository has no LICENSE file.**
+
+**Docker and CI.** Multi-stage Dockerfile (frontend built in a Node stage, pinned Python install with CPU torch, tini, non-root UID 10001, health check) and
+`docker-compose.prod.yml` (internal-only PostgreSQL, one-shot migrate, API on loopback, worker with heartbeat health check, read-only root, dropped
+capabilities). A CI workflow covers backend, frontend (tsc, eslint, vitest, build), Playwright, PostgreSQL service tests and migrations, dependency/secret scans and a Docker
+build-and-run check. **None of the Docker files has been built or run (no Docker on the development machine), and the workflow has not run on GitHub.** They are
+covered by static tests only and `DOCKER.md` lists the exact verification commands.
+
+**Performance, backup, accessibility.** Measured numbers and the optimisations are in `PERFORMANCE.md` (synthetic corpus, loopback, single machine). The backup
+and restore drill (`scripts/backup_restore_drill.py`) passed against a throwaway local PostgreSQL. Automated keyboard, focus and mobile axe checks pass; screen-reader
+testing was **not** done.
+
+**Not done / limits.** Docker/compose/CI unverified; HSTS/Secure cookies not checked over real HTTPS; the rate limiter is per process; experiments cannot run
+inside the container (no Docker sandbox in the container); zod, react-router and Vite major upgrades deferred; no production-scale or networked benchmarks; PyMuPDF
+decision open; P8 real-text training still postponed.

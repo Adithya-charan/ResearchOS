@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import Depends, APIRouter, HTTPException, Query, Request
 from sqlalchemy import func, select
 
 from agent_engine.errors import RunStateError
 from agent_engine.reporting import report_from_store
+from api.ratelimit import rate_limit
 from api.deps import DB, CurrentAuth, audit
 from api.models import Project, Run
 from api.routes.projects import owned_project
@@ -42,7 +43,7 @@ def _launch(request: Request, db, auth, r: Run, force: bool = False) -> bool:
     return queued
 
 
-@router.post("/projects/{project_id}/runs", status_code=201, response_model=RunOut)
+@router.post("/projects/{project_id}/runs", status_code=201, response_model=RunOut, dependencies=[Depends(rate_limit("run_create"))])
 def create_run(project_id: str, body: RunIn, request: Request, auth: CurrentAuth, db: DB):
     p: Project = owned_project(db, project_id, auth.user.id)
     s, rt = request.app.state.settings, request.app.state.runtime

@@ -124,3 +124,16 @@ def test_spa_serves_real_built_assets_with_the_right_type(built):
     assert js, html[:500]
     r = built.get("/app/" + js.group(1))
     assert r.status_code == 200 and "javascript" in r.headers["content-type"]
+
+
+def test_spa_text_assets_are_gzipped_when_accepted_and_identical_when_decoded(built):
+    import re
+
+    html = built.get("/app", headers={"Accept-Encoding": "identity"}).text
+    asset = re.search(r'src="/app/(assets/[^"]+\.js)"', html).group(1)
+    plain = built.get("/app/" + asset, headers={"Accept-Encoding": "identity"})
+    assert "content-encoding" not in plain.headers
+    raw = built.build_request("GET", "/app/" + asset, headers={"Accept-Encoding": "gzip"})
+    zipped = built.send(raw)  # the test client decodes transparently, so check the header and the byte count instead
+    assert zipped.headers["content-encoding"] == "gzip" and zipped.headers["vary"] == "Accept-Encoding"
+    assert zipped.content == plain.content and zipped.num_bytes_downloaded < len(plain.content) / 2  # fewer bytes on the wire

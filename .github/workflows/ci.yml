@@ -1,5 +1,9 @@
 name: CI
 
+# Pull requests and pushes to main. Nothing here deploys anything and nothing needs a secret: the PostgreSQL service uses a throwaway
+# trust-auth database that exists only for the job, and the Docker smoke test generates its own random password at run time.
+# NOT YET RUN ON GITHUB: these workflows were written and statically checked (tests/test_p10_ci.py) but have not been executed by
+# GitHub Actions at the time of writing; treat the first run as the verification.
 on:
   push:
     branches: [main]
@@ -12,31 +16,105 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
 jobs:
-  test:
-    name: Tests (Python ${{ matrix.python }})
+  backend:
+    name: Backend tests (SQLite)
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.11"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.11"
           cache: pip
-          cache-dependency-path: pyproject.toml
+          cache-dependency-path: |
+            pyproject.toml
+            requirements/constraints.txt
       - name: Install CPU PyTorch
-        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Install dependencies
-        run: pip install -e ".[dev,api,corpus,postgres]"
+        run: pip install "torch>=2.4" --index-url https://download.pytorch.org/whl/cpu
+      - name: Install dependencies (pinned)
+        run: pip install -c requirements/constraints.txt -e ".[dev,api,corpus,postgres]" pyyaml
+      - name: Lint (ruff, correctness rules only)
+        run: pip install ruff && ruff check --select E9,F63,F7,F82 api agent_engine research model scripts
       - name: Run test suite
         run: python -m pytest
 
+  frontend:
+    name: Frontend (types, lint, unit tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint
+        run: npx eslint . --max-warnings 0
+      - name: Vitest
+        run: npx vitest run
+      - name: Production build
+        run: npm run build
+      - name: Bundle size report
+        run: du -sk dist dist/assets && ls -lS dist/assets | head -12
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  e2e:
+    name: Browser tests (Playwright, real backend) and accessibility scan
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: pip install "torch>=2.4" --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -c requirements/constraints.txt -e ".[api,corpus,postgres]"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Full flow, axe scan and keyboard checks
+        working-directory: frontend
+        env:
+          PW_CHANNEL: ""
+          PW_PYTHON: python
+        run: npx playwright test full-flow a11y keyboard
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            frontend/test-results
+            frontend/playwright-report
+          retention-days: 7
+
   postgres:
-    name: PostgreSQL integration tests
+    name: PostgreSQL integration tests and migration validation
     runs-on: ubuntu-latest
     timeout-minutes: 40
     services:
@@ -56,10 +134,8 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - name: Install CPU PyTorch
-        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Install dependencies
-        run: pip install -e ".[dev,api,corpus,postgres]"
+      - run: pip install "torch>=2.4" --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -c requirements/constraints.txt -e ".[dev,api,corpus,postgres]" pyyaml
       - name: PostgreSQL integration tests (real server, no mocks)
         run: python -m pytest tests/test_p7_postgres.py
       - name: Existing API, engine and agent tests, run on PostgreSQL
@@ -70,9 +146,55 @@ jobs:
           tests/test_api_reports.py tests/test_api_sse.py tests/test_jobs.py tests/test_p3_execution.py tests/test_p4_agents.py
           tests/test_p5_closure.py tests/test_p5_knowledge.py tests/test_p6_evidence.py tests/test_research_workflow.py
           tests/test_corpus_agents.py tests/test_experiments.py tests/test_agent_engine.py tests/test_agent_workflow.py
+          tests/test_p9_web.py tests/test_p10_security.py
           --deselect tests/test_agent_state.py
-      - name: Validate the PostgreSQL compose files
-        run: POSTGRES_PASSWORD="$(openssl rand -hex 16)" docker compose -f docker-compose.yml -f docker-compose.postgres.yml config -q
+      - name: Migrations apply to an empty PostgreSQL database, are idempotent and `check` passes
+        env:
+          RESEARCHOS_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/postgres
+          RESEARCHOS_DATABASE_SCHEMA: api
+          RESEARCHOS_ENGINE_DATABASE_SCHEMA: engine
+        run: |
+          python scripts/migrate_db.py upgrade
+          python scripts/migrate_db.py upgrade
+          python scripts/migrate_db.py check
+      - name: Migrations apply to an empty SQLite database
+        env:
+          RESEARCHOS_DATABASE_URL: sqlite:////tmp/ci-app.db
+          RESEARCHOS_ENGINE_DB: /tmp/ci-engine.db
+        run: |
+          python scripts/migrate_db.py upgrade
+          python scripts/migrate_db.py check
+
+  security:
+    name: Dependency and secret scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # secret scanning covers the whole history
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Python dependencies (pinned versions) have no known vulnerabilities
+        run: pip install pip-audit && pip-audit -r requirements/constraints.txt --no-deps --disable-pip
+      - name: Static analysis (bandit, high severity)
+        run: pip install bandit && bandit -q -r api agent_engine research model scripts -lll
+      - name: npm audit, production dependencies, critical only (blocking)
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund && npm audit --omit=dev --audit-level=critical
+      - name: npm audit, everything (report only; see docs/SECURITY.md for the triage)
+        working-directory: frontend
+        continue-on-error: true
+        run: npm audit
+      - name: Secret scan (gitleaks, full history)
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.18.4 detect --source /repo --config /repo/.gitleaks.toml --no-banner --redact
 
   hygiene:
     name: Repository hygiene
@@ -88,28 +210,63 @@ jobs:
         run: |
           big=$(git ls-files -z | xargs -0 du -k | awk '$1 > 5120 {print $2}')
           if [ -n "$big" ]; then echo "files over 5 MB:"; echo "$big"; exit 1; fi
+      - name: No .env or private keys committed
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$|\.pem$|id_rsa'; then echo "secret-bearing file is tracked"; exit 1; fi
 
   docker:
-    name: Docker image
+    name: Docker image and compose smoke test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: Validate compose file
-        run: docker compose config -q
-      - name: Build image
-        run: docker build -t researchos-api:ci .
-      - name: Run container as a non-root user and check health
+      - name: Generate throwaway credentials for this job only
         run: |
-          docker run -d --name api -p 8000:8000 --read-only --tmpfs /tmp --cap-drop ALL             --security-opt no-new-privileges:true -v ci-data:/data researchos-api:ci
-          for i in $(seq 1 40); do
-            if curl -fsS http://127.0.0.1:8000/health; then echo; break; fi
-            sleep 2
+          echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+          echo "RESEARCHOS_ALLOWED_ORIGINS=http://127.0.0.1:8000" >> "$GITHUB_ENV"
+          echo "RESEARCHOS_COOKIE_SECURE=false" >> "$GITHUB_ENV"
+          echo "RESEARCHOS_HSTS=false" >> "$GITHUB_ENV"
+      - name: Validate compose files
+        run: |
+          docker compose config -q
+          docker compose -f docker-compose.yml -f docker-compose.postgres.yml config -q
+          docker compose -f docker-compose.prod.yml config -q
+      - name: Build the production image (frontend is built inside it)
+        run: docker build -t researchos:local .
+      - name: The image holds the built web app, runs as a non-root user and has no Node toolchain
+        run: |
+          docker run --rm --entrypoint sh researchos:local -c 'test -f /app/frontend/dist/index.html && test "$(id -u)" = 10001 && ! command -v node'
+      - name: Start PostgreSQL, migration, API and worker
+        run: |
+          docker compose -f docker-compose.prod.yml up -d --build
+          for i in $(seq 1 90); do
+            api=$(docker compose -f docker-compose.prod.yml ps --format '{{.Health}}' api)
+            worker=$(docker compose -f docker-compose.prod.yml ps --format '{{.Health}}' worker)
+            [ "$api" = healthy ] && [ "$worker" = healthy ] && exit 0
+            sleep 3
           done
-          curl -fsS http://127.0.0.1:8000/health
-          test "$(docker exec api id -u)" = "10001"
-          docker logs api | tail -20
-      - name: Register and sign in through the container
+          docker compose -f docker-compose.prod.yml ps; exit 1
+      - name: Health, web app, security headers
         run: |
-          curl -fsS -c jar -H 'Content-Type: application/json'             -d '{"email":"ci@example.org","password":"correct horse battery 42"}' http://127.0.0.1:8000/auth/register
-          curl -fsS -b jar http://127.0.0.1:8000/auth/me
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS http://127.0.0.1:8000/app/ | grep -q "<div id=\"root\""
+          curl -sI http://127.0.0.1:8000/app/ | grep -i "content-security-policy"
+          docker compose -f docker-compose.prod.yml ps
+          test "$(docker compose -f docker-compose.prod.yml ps --format '{{.Health}}' worker)" = healthy
+      - name: PostgreSQL is not reachable from the host
+        run: "! (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null"
+      - name: Register, create a project, and verify data survives a restart
+        run: |
+          curl -fsS -c jar -H 'Content-Type: application/json' -d '{"email":"ci@example.org","password":"correct horse battery 42"}' http://127.0.0.1:8000/auth/register > reg.json
+          csrf=$(python3 -c "import json;print(json.load(open('reg.json'))['csrf_token'])")
+          curl -fsS -b jar -H "X-CSRF-Token: $csrf" -H 'Content-Type: application/json' -d '{"title":"CI","question":"Does the stack persist data?"}' http://127.0.0.1:8000/projects
+          docker compose -f docker-compose.prod.yml restart api worker
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:8000/health >/dev/null && break; sleep 2; done
+          curl -fsS -c jar -H 'Content-Type: application/json' -d '{"email":"ci@example.org","password":"correct horse battery 42"}' http://127.0.0.1:8000/auth/login >/dev/null
+          curl -fsS -b jar http://127.0.0.1:8000/projects | grep -q '"CI"'
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml logs --no-color --tail 200
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down -v

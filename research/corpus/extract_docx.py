@@ -29,8 +29,8 @@ def _read_member(zf: zipfile.ZipFile, name: str) -> bytes | None:
 
 
 def _parse(data: bytes) -> ET.Element:
-    head = data[:4096].lower()
-    if b"<!doctype" in head or b"<!entity" in head:
+    # the whole member is scanned: an attacker can pad the prolog with comments so that a DTD starts after any fixed-size prefix
+    if re.search(rb"<!(?:doctype|entity)", data, re.IGNORECASE):
         raise ExtractionError("unsafe", "XML declares a DTD/entities (possible entity-expansion attack); refusing")
     try:
         return ET.fromstring(data)

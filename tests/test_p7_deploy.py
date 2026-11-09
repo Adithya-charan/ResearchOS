@@ -62,7 +62,7 @@ def test_application_services_are_hardened_and_shut_down_gracefully():
 
 def test_the_image_installs_the_postgresql_driver_and_defaults_to_sqlite():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-    assert re.search(r'pip install "\.\[[^\]]*postgres[^\]]*\]"', dockerfile)
+    assert re.search(r'pip install (?:-c \S+ )?"\.\[[^\]]*postgres[^\]]*\]"', dockerfile)  # optional pinned-constraints flag
     assert "RESEARCHOS_DATABASE_URL=sqlite:////data/" in dockerfile  # still a working single-container default
     assert "postgres" in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 

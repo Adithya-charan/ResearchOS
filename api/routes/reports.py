@@ -4,7 +4,7 @@ import copy
 import hashlib
 import json
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import Depends, APIRouter, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from sqlalchemy import select
 from agent_engine.reporting import render_structured_markdown, report_from_store
 from api import claims_service
 from api.db import utcnow
+from api.ratelimit import rate_limit
 from api.deps import DB, CurrentAuth, audit
 from api.models import Report, ReportVersion
 from api.report_export import display_title, slug, to_markdown, to_pdf
@@ -66,7 +67,7 @@ def _summary(r: Report) -> dict:
             "version": r.version, "review": (r.editable.get("review") or {}).get("status", "pending"), "updated_at": r.updated_at}
 
 
-@router.post("/runs/{run_id}/reports", status_code=201)
+@router.post("/runs/{run_id}/reports", status_code=201, dependencies=[Depends(rate_limit("report"))])
 def generate_report(run_id: str, request: Request, auth: CurrentAuth, db: DB):
     run = owned_run(db, run_id, auth.user.id)
     existing = db.scalar(select(Report).where(Report.run_id == run.id))
@@ -208,21 +209,21 @@ def _download(data: bytes | str, media: str, r: Report, ext: str) -> Response:
         "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
 
 
-@router.get("/reports/{report_id}/export.md")
+@router.get("/reports/{report_id}/export.md", dependencies=[Depends(rate_limit("report"))])
 def export_markdown(report_id: str, auth: CurrentAuth, db: DB):
     r = owned_report(db, report_id, auth.user.id)
     _export_guard(r)
     return _download(to_markdown(r.content, r.editable, meta(r)), "text/markdown; charset=utf-8", r, "md")
 
 
-@router.get("/reports/{report_id}/export.pdf")
+@router.get("/reports/{report_id}/export.pdf", dependencies=[Depends(rate_limit("report"))])
 def export_pdf(report_id: str, auth: CurrentAuth, db: DB):
     r = owned_report(db, report_id, auth.user.id)
     _export_guard(r)
     return _download(to_pdf(r.content, r.editable, meta(r)), "application/pdf", r, "pdf")
 
 
-@router.get("/reports/{report_id}/export.json")
+@router.get("/reports/{report_id}/export.json", dependencies=[Depends(rate_limit("report"))])
 def export_json(report_id: str, auth: CurrentAuth, db: DB):
     r = owned_report(db, report_id, auth.user.id)
     _export_guard(r)

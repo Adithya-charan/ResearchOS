@@ -3,11 +3,12 @@ from __future__ import annotations
 import mimetypes
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import Depends, APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
 from sqlalchemy import func, select
 
+from api.ratelimit import rate_limit
 from api.deps import DB, CurrentAuth, audit
 from api.db import utcnow
 from api.experiments_service import SandboxUnavailable, spec_hash
@@ -107,7 +108,7 @@ def request_approval(exp_id: str, request: Request, auth: CurrentAuth, db: DB):
     return _view(request, e)
 
 
-@router.post("/experiments/{exp_id}/execute", status_code=202)
+@router.post("/experiments/{exp_id}/execute", status_code=202, dependencies=[Depends(rate_limit("experiment"))])
 def execute(exp_id: str, request: Request, auth: CurrentAuth, db: DB):
     e = owned_experiment(db, exp_id, auth.user.id)
     s, svc = request.app.state.settings, request.app.state.experiments
@@ -175,7 +176,7 @@ def download_artifact(exp_id: str, path: str, request: Request, auth: CurrentAut
                         headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
 
 
-@router.post("/experiments/{exp_id}/reproduce", status_code=202)
+@router.post("/experiments/{exp_id}/reproduce", status_code=202, dependencies=[Depends(rate_limit("experiment"))])
 def reproduce_experiment(exp_id: str, request: Request, auth: CurrentAuth, db: DB):
     e = owned_experiment(db, exp_id, auth.user.id)
     svc = request.app.state.experiments

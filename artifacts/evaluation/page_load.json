@@ -1,0 +1,63 @@
+{
+  "environment": "Edge (msedge channel), loopback, cache cleared before each load, API serves the built SPA (gzip when accepted)",
+  "overview": {
+    "requests": 19,
+    "dom_content_loaded_ms": 88,
+    "load_ms": 89,
+    "lcp_ms": 504,
+    "js": {
+      "files": 7,
+      "wire_kb": 267,
+      "decoded_kb": 902
+    },
+    "css": {
+      "files": 1,
+      "wire_kb": 9
+    },
+    "fonts": {
+      "files": 2,
+      "wire_kb": 87
+    },
+    "total_wire_kb": 366
+  },
+  "library": {
+    "requests": 16,
+    "dom_content_loaded_ms": 122,
+    "load_ms": 122,
+    "lcp_ms": 348,
+    "js": {
+      "files": 5,
+      "wire_kb": 117,
+      "decoded_kb": 378
+    },
+    "css": {
+      "files": 1,
+      "wire_kb": 9
+    },
+    "fonts": {
+      "files": 2,
+      "wire_kb": 87
+    },
+    "total_wire_kb": 214
+  },
+  "agents_with_graph": {
+    "requests": 21,
+    "dom_content_loaded_ms": 109,
+    "load_ms": 109,
+    "lcp_ms": 344,
+    "js": {
+      "files": 7,
+      "wire_kb": 171,
+      "decoded_kb": 543
+    },
+    "css": {
+      "files": 2,
+      "wire_kb": 11
+    },
+    "fonts": {
+      "files": 2,
+      "wire_kb": 87
+    },
+    "total_wire_kb": 286
+  }
+}

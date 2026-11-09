@@ -184,6 +184,18 @@ docker compose logs -f api
   mounted**, so inside the container experiments are refused unless you set the non-isolating development fallback.
 * CI builds and runs the image; it has not been built on the author's machine (no Docker there).
 
+### Production (P10)
+
+```bash
+cp .env.example .env     # set POSTGRES_PASSWORD and RESEARCHOS_ALLOWED_ORIGINS
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+```
+
+PostgreSQL (internal network only) + one-shot migration + API serving the web app + worker, one multi-stage image that builds the frontend. **Not yet
+verified on a Docker host**; see [docs/DOCKER.md](docs/DOCKER.md) for the checklist, [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (environment variables,
+TLS proxy, checklist), [docs/SECURITY.md](docs/SECURITY.md) (review, rate limits, headers, dependency audit, PyMuPDF licence question),
+[docs/CI_CD.md](docs/CI_CD.md), [docs/PERFORMANCE.md](docs/PERFORMANCE.md) and [docs/BACKUP_RECOVERY.md](docs/BACKUP_RECOVERY.md).
+
 ### PostgreSQL deployment
 
 ```bash

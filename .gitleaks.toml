@@ -1,0 +1,20 @@
+title = "RESEARCHOS gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# Evaluation reports record the tokenizer's SHA-256 fingerprint; the generic-api-key rule mistakes that hash for a key.
+[[allowlists]]
+description = "SHA-256 content fingerprints in committed evaluation reports"
+paths = ['''artifacts/reports/eval_.*\.json''']
+regexes = ['''"tokenizer_fingerprint":\s*"[0-9a-f]{64}"''']
+
+[[allowlists]]
+description = "Prose in the audit report that contains 'SQLAlchemy/Alembic'"
+paths = ['''IMPLEMENTATION_AUDIT\.md''']
+regexes = ['''SQLAlchemy/Alembic''']
+
+[[allowlists]]
+description = "Throwaway password of the isolated end-to-end test account (fresh temporary database per run)"
+paths = ['''frontend/e2e/.*''']
+regexes = ['''Orchid-Lantern-Quartz-2026''']

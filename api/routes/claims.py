@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import Depends, APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
 from api import claims_service as svc
+from api.ratelimit import rate_limit
 from api.deps import DB, CurrentAuth, audit
 from api.models import Claim, ClaimVerification, NoveltyAssessmentRow
 from api.routes.projects import owned_project
@@ -124,7 +125,7 @@ def remove_evidence(project_id: str, claim_id: str, evidence_id: int, request: R
     audit(db, request, "claim_evidence_remove", auth.user.id, c.id, evidence=evidence_id)
 
 
-@router.post("/projects/{project_id}/claims/{claim_id}/verify")
+@router.post("/projects/{project_id}/claims/{claim_id}/verify", dependencies=[Depends(rate_limit("verify"))])
 def verify_claim(project_id: str, claim_id: str, request: Request, auth: CurrentAuth, db: DB):
     owned_project(db, project_id, auth.user.id)
     c = _claim(db, project_id, claim_id, auth.user.id)
@@ -152,7 +153,7 @@ def project_verifications(project_id: str, auth: CurrentAuth, db: DB, limit: int
     return [svc.verification_view(v) for v in rows]
 
 
-@router.post("/runs/{run_id}/claims/extract")
+@router.post("/runs/{run_id}/claims/extract", dependencies=[Depends(rate_limit("verify"))])
 def extract_run_claims(run_id: str, request: Request, auth: CurrentAuth, db: DB):
     """Persist the claims the run's agents produced (with their evidence, verification history and novelty assessments)."""
     run = owned_run(db, run_id, auth.user.id)
@@ -166,7 +167,7 @@ def extract_run_claims(run_id: str, request: Request, auth: CurrentAuth, db: DB)
     return result
 
 
-@router.post("/projects/{project_id}/novelty", status_code=201)
+@router.post("/projects/{project_id}/novelty", status_code=201, dependencies=[Depends(rate_limit("verify"))])
 def assess_novelty(project_id: str, body: NoveltyIn, request: Request, auth: CurrentAuth, db: DB):
     owned_project(db, project_id, auth.user.id)
     claim = _claim(db, project_id, body.claim_id, auth.user.id) if body.claim_id else None

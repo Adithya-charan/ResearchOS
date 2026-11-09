@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import signal
 import sys
 import threading
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -42,7 +44,15 @@ def main() -> int:
         signal.signal(sig, lambda *_: done.set())
     worker.start()
     logging.getLogger("researchos.worker").info("worker %s started (concurrency %d)", worker.worker_id, settings.worker_concurrency)
-    done.wait()
+    # Liveness for container health checks: the file is touched only while the worker's loop thread is alive, so a wedged or dead
+    # worker stops refreshing it. (It proves the loop is running, not that jobs are progressing: see docs/DEPLOYMENT.md.)
+    beat = os.environ.get("RESEARCHOS_WORKER_HEARTBEAT", "/tmp/researchos-worker.alive")
+    while not done.wait(5.0):
+        if worker._thread is not None and worker._thread.is_alive():
+            try:
+                Path(beat).write_text(str(time.time()))
+            except OSError:
+                pass
     worker.stop()
     return 0
 

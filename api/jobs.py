@@ -146,6 +146,10 @@ class JobQueue:
 
     def requeue(self, job_id: str, worker_id: str, reason: str, penalty: bool = True, only_if_expired: bool = False) -> str:
         """Give a job back (shutdown, lost lease, crash). Returns the new status: queued, or failed once attempts are used up."""
+        return self._requeue(job_id, worker_id, reason, penalty, only_if_expired)[0]
+
+    def _requeue(self, job_id: str, worker_id: str, reason: str, penalty: bool, only_if_expired: bool) -> tuple[str, bool]:
+        """As `requeue`, also reporting whether *this call* changed the job (a racing caller that finds it already given back did not)."""
         with self.sessions() as db:
             # Lock the row for the whole decision: a heartbeat (a single UPDATE) then waits instead of renewing a lease we are
             # about to take away, and two reapers cannot both requeue the same job.
@@ -153,10 +157,10 @@ class JobQueue:
                             .execution_options(populate_existing=True))
             if job is None or job.worker_id != worker_id or job.status != "running":
                 db.rollback()
-                return job.status if job else "gone"
+                return (job.status if job else "gone"), False
             if only_if_expired and not (job.lease_expires_at is not None and job.lease_expires_at < utcnow()):
                 db.rollback()  # the worker renewed its lease after we looked: it is alive
-                return "running"
+                return "running", False
             if not penalty:
                 job.attempts = max(0, job.attempts - 1)
             if job.attempts >= job.max_attempts:
@@ -168,7 +172,7 @@ class JobQueue:
             job.worker_id, job.lease_expires_at = "", None
             db.commit()
             self._event(job, "job_requeued" if job.status == "queued" else "job_failed", reason=reason[:300], attempts=job.attempts)
-            return job.status
+            return job.status, True
 
     def reap_expired(self) -> int:
         """Re-queue (or fail) jobs whose worker stopped heartbeating."""
@@ -178,11 +182,12 @@ class JobQueue:
             stale = db.scalars(select(ResearchJob).where(ResearchJob.status == "running", ResearchJob.lease_expires_at < now)).all()
             ids = [(j.id, j.worker_id) for j in stale]
         for jid, wid in ids:
-            status = self.requeue(jid, wid, "worker stopped heartbeating (lease expired)", only_if_expired=True)
+            status, acted = self._requeue(jid, wid, "worker stopped heartbeating (lease expired)", True, True)
+            if not acted:
+                continue  # the worker renewed its lease, or a competing reaper (or the worker's own finish) got there first
             if status == "failed":
                 self._fail_engine_run(jid)
-            if status != "running":
-                n += 1
+            n += 1
         return n
 
     def _fail_engine_run(self, job_id: str) -> None:

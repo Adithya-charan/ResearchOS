@@ -1,0 +1,132 @@
+# RESEARCHOS production stack: PostgreSQL + one-shot migration + API (serves the web app at /app) + research worker.
+#
+#   cp .env.example .env     # set POSTGRES_PASSWORD, RESEARCHOS_ALLOWED_ORIGINS (and RESEARCHOS_ADMIN_EMAILS if needed)
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+#
+# Self-contained (unlike docker-compose.yml + docker-compose.postgres.yml, which are the development / single-host files).
+# NOT VERIFIED: Docker is not installed on the development machine, so this file has been validated statically only
+# (tests/test_p10_deploy.py, `docker compose config` in CI). Follow docs/DOCKER.md to verify it on a machine that has Docker.
+#
+# Design:
+#  * The web app is built into the image and served by the API at /app: there is one origin, so the HttpOnly session cookie and the
+#    CSRF token work unchanged and no CORS is needed. Put a TLS-terminating reverse proxy in front (docs/DEPLOYMENT.md); the API port is
+#    published on loopback only.
+#  * PostgreSQL lives on an `internal` network: it has no published port and no route to the outside world. The worker and the
+#    migration job are on that network only; the API is on both it and the public-facing default network.
+#  * Secrets come from the environment (.env, which is git-ignored); nothing is baked into the image.
+x-researchos-env: &researchos-env
+  RESEARCHOS_DATABASE_URL: postgresql://${POSTGRES_USER:-researchos}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-researchos}
+  RESEARCHOS_DATABASE_SCHEMA: api
+  RESEARCHOS_ENGINE_DATABASE_SCHEMA: engine
+  RESEARCHOS_DB_POOL_SIZE: ${RESEARCHOS_DB_POOL_SIZE:-10}
+  RESEARCHOS_DB_MAX_OVERFLOW: ${RESEARCHOS_DB_MAX_OVERFLOW:-20}
+  RESEARCHOS_AUTO_MIGRATE: "false"       # only the migrate service changes the schema; api and worker refuse to start if it is behind
+  RESEARCHOS_EMBEDDED_WORKER: "false"    # runs execute in the worker service, never inside a request process
+  RESEARCHOS_DATA_DIR: /data/files
+  RESEARCHOS_MODELS_DIR: /models
+  RESEARCHOS_WORKER_CONCURRENCY: ${RESEARCHOS_WORKER_CONCURRENCY:-2}
+  RESEARCHOS_LOG_LEVEL: ${RESEARCHOS_LOG_LEVEL:-info}
+  RESEARCHOS_TRAINING_ENABLED: "false"
+  RESEARCHOS_ALLOW_WEAK_SANDBOX: "false"
+  RESEARCHOS_DEMO_CORPUS: "false"
+  RESEARCHOS_ENABLE_DOCS: ${RESEARCHOS_ENABLE_DOCS:-false}   # Swagger UI / OpenAPI schema off in production unless asked for
+
+x-hardening: &hardening
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  init: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-researchos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-researchos}
+    volumes:
+      - researchos-pgdata:/var/lib/postgresql/data   # survives `down`; only `down -v` deletes it (docs/BACKUP_RECOVERY.md)
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+    # no `ports:`: the database is reachable from the other services only
+
+  migrate:
+    <<: *hardening
+    build: .
+    image: researchos:local
+    restart: "no"
+    command: ["python", "scripts/migrate_db.py", "upgrade"]
+    environment:
+      <<: *researchos-env
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [internal]
+
+  api:
+    <<: *hardening
+    build: .
+    image: researchos:local
+    restart: unless-stopped
+    command: ["python", "scripts/serve_api.py", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      <<: *researchos-env
+      RESEARCHOS_ALLOWED_ORIGINS: ${RESEARCHOS_ALLOWED_ORIGINS:?set RESEARCHOS_ALLOWED_ORIGINS to the public https origin, e.g. https://research.example.org}
+      RESEARCHOS_COOKIE_SECURE: ${RESEARCHOS_COOKIE_SECURE:-true}
+      RESEARCHOS_HSTS: ${RESEARCHOS_HSTS:-true}
+      RESEARCHOS_TRUSTED_PROXIES: ${RESEARCHOS_TRUSTED_PROXIES:-127.0.0.1}
+      RESEARCHOS_ADMIN_EMAILS: ${RESEARCHOS_ADMIN_EMAILS:-}
+    ports:
+      - "127.0.0.1:${RESEARCHOS_PORT:-8000}:8000"   # loopback only; expose through a TLS reverse proxy
+    volumes:
+      - researchos-data:/data
+      - ${RESEARCHOS_MODELS_PATH:-./artifacts/checkpoints}:/models:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    networks: [internal, default]
+    stop_grace_period: 30s
+    mem_limit: ${RESEARCHOS_MEM_LIMIT:-4g}
+    pids_limit: 512
+
+  worker:
+    <<: *hardening
+    build: .
+    image: researchos:local
+    restart: unless-stopped
+    command: ["python", "scripts/run_worker.py"]
+    environment:
+      <<: *researchos-env
+    volumes:
+      - researchos-data:/data        # the same document libraries the API writes
+      - ${RESEARCHOS_MODELS_PATH:-./artifacts/checkpoints}:/models:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    networks: [internal]
+    healthcheck:
+      # the worker touches this file every 5 s while its loop thread is alive (scripts/run_worker.py)
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time()-os.path.getmtime('/tmp/researchos-worker.alive') < 60 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    stop_grace_period: 40s           # running jobs are handed back to the queue on SIGTERM, then another worker resumes them
+    mem_limit: ${RESEARCHOS_WORKER_MEM_LIMIT:-4g}
+    pids_limit: 512
+
+networks:
+  internal:
+    internal: true                   # no route to or from the outside world
+
+volumes:
+  researchos-pgdata:
+  researchos-data:

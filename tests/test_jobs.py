@@ -417,3 +417,16 @@ def test_a_job_queued_before_a_restart_runs_after_it(tmp_path):
     with TestClient(app2, base_url="http://testserver") as c2:  # lifespan starts the embedded worker
         assert c2.post("/auth/login", json={"email": "alice@example.org", "password": "correct horse battery 42"}).status_code == 200
         wait_for(lambda: lifecycle_of(c2, rid) == "completed")
+
+
+def test_a_reaper_that_loses_the_race_does_not_count_a_requeue_it_did_not_do(client, app):
+    # Regression: a second reaper holding a stale candidate list used to report the job's *current* status ("queued") and count it as reaped.
+    h, _, rid = make_run(client)
+    q = app.state.runtime.jobs
+    job = q.claim("w1")
+    set_job(app, rid, lease_expires_at=utcnow() - timedelta(seconds=5))
+    first = q._requeue(job["id"], "w1", "lease expired", True, True)
+    second = q._requeue(job["id"], "w1", "lease expired", True, True)  # same stale (job, worker) pair, job is already queued
+    assert first == ("queued", True)
+    assert second == ("queued", False)
+    assert q.reap_expired() == 0  # nothing left to reap

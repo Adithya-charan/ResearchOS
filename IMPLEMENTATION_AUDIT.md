@@ -216,3 +216,23 @@ restart) depends on runs executing outside the request process and surviving res
 | Manual a11y (keyboard, screen reader, zoom) and cross-browser | **NOT DONE** | automated axe only; Edge only |
 | Dockerfile builds the frontend | **NOT DONE** | `frontend/dist` must be built before running the API |
 | Gaps/hypotheses as stored entities, experiment creation UI, password change | **NOT AVAILABLE** | no API support; pages say so |
+
+## P10 - production hardening, security, Docker, CI/CD (added)
+
+Full start-of-P10 audit: `docs/P10_AUDIT.md`. All P10 changes are **uncommitted**.
+
+| Item | Status | Evidence / limit |
+|---|---|---|
+| Security review (backend + frontend) | **DONE** | `docs/SECURITY.md`; 108 handlers scanned, every documented operation except `/health`, `/auth/login`, `/auth/register` refuses an unauthenticated call (test) |
+| Real defects found and fixed | **DONE** | DOCX DTD check only scanned the first 4 KiB (bypassable with a long comment prolog); no rate limits on expensive operations; no baseline security headers; `/docs` public; wildcard origins accepted; agent-graph keyboard focus |
+| Configurable rate limits (upload, run, search, verify, report, experiment, evaluate, reprocess) | **DONE** | `api/ratelimit.py`, `tests/test_p10_security.py`; in-process (per API process) - a shared store is needed for several API replicas |
+| Dependency audit (npm, pip-audit, osv, bandit, gitleaks, licences) | **DONE** with open items | critical/high dev-only npm advisories (vitest/tinypool, vite/esbuild) and two production ones (zod, react-router) need breaking upgrades - deferred and documented |
+| PyMuPDF licence | **OPEN** | AGPL-3.0 or commercial; legal decision needed; alternatives not evaluated; repo has no LICENSE file |
+| Security headers | **DONE** (local) | CSP, nosniff, frame, referrer, permissions, COOP/CORP, HSTS; HSTS/Secure cookie **not verified over real HTTPS** |
+| Multi-stage production Dockerfile | **WRITTEN, NOT BUILT** | static tests only (`tests/test_p10_deploy.py`); Docker not installed here |
+| Production compose (postgres, migrate, api, worker) | **WRITTEN, NOT RUN** | static tests; `docker compose config` never executed |
+| GitHub Actions (frontend, backend, e2e, postgres, security, docker) | **WRITTEN, NOT RUN ON GITHUB** | static tests (`tests/test_p10_ci.py`) |
+| Performance measurements | **MEASURED** (this machine, synthetic corpus, loopback) | `docs/PERFORMANCE.md`; no production-scale or networked numbers |
+| Optimisations | **DONE, A/B measured** | lazy corpus imports, phrase pre-filter, charts chunk no longer preloaded, gzip for SPA assets |
+| Backup / restore | **DRILL PASSED** on a throwaway local PostgreSQL | `docs/BACKUP_RECOVERY.md`, `tests/test_p10_backup.py`; Docker-based commands unverified |
+| Accessibility | automated keyboard/focus/mobile axe **PASS** | screen-reader, zoom/reflow and non-Edge browsers **NOT DONE** |

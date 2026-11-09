@@ -8,9 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from research.corpus.extract_docx import extract_docx
 from research.corpus.extract_pdf import DEFAULT_MAX_PAGES, extract_pdf
-from research.corpus.extract_text import extract_html, extract_md, extract_txt
 from research.corpus.models import ExtractedDocument, ExtractionError
 from research.corpus.validate import DEFAULT_MAX_BYTES, detect_file_type
 
@@ -19,16 +17,15 @@ MAX_WORKER_OUTPUT = 400 * 1024 * 1024
 
 
 def extract_in_process(path: Path, file_type: str, max_pages: int = DEFAULT_MAX_PAGES) -> ExtractedDocument:
+    # parsers are imported on demand: the isolated child process pays for exactly one of them, not all (docs/PERFORMANCE.md)
     if file_type == "pdf":
         return extract_pdf(path, max_pages)
     if file_type == "docx":
+        from research.corpus.extract_docx import extract_docx
         return extract_docx(path)
-    if file_type == "md":
-        return extract_md(path)
-    if file_type == "html":
-        return extract_html(path)
-    if file_type == "txt":
-        return extract_txt(path)
+    if file_type in ("md", "html", "txt"):
+        from research.corpus import extract_text
+        return {"md": extract_text.extract_md, "html": extract_text.extract_html, "txt": extract_text.extract_txt}[file_type](path)
     raise ExtractionError("unsupported_type", f"no extractor for '{file_type}'")
 
 

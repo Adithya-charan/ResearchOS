@@ -21,3 +21,11 @@ artifacts/reports
 *.safetensors
 *.pt
 *.bin
+frontend/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+frontend/e2e
+**/node_modules
+.claude
+*.log

@@ -1,0 +1,176 @@
+{
+  "simple_endpoints": {
+    "health": {
+      "n": 200,
+      "p50_ms": 3.63,
+      "p95_ms": 4.93,
+      "max_ms": 14.36
+    },
+    "auth_me": {
+      "n": 200,
+      "p50_ms": 6.7,
+      "p95_ms": 9.28,
+      "max_ms": 17.05
+    },
+    "list_projects": {
+      "n": 200,
+      "p50_ms": 8.6,
+      "p95_ms": 13.83,
+      "max_ms": 22.9
+    },
+    "overview": {
+      "n": 200,
+      "p50_ms": 14.46,
+      "p95_ms": 25.3,
+      "max_ms": 249.76
+    },
+    "audit": {
+      "n": 200,
+      "p50_ms": 9.23,
+      "p95_ms": 14.59,
+      "max_ms": 117.42
+    }
+  },
+  "library_scaling": [
+    {
+      "documents": 25,
+      "upload": {
+        "n": 25,
+        "p50_ms": 350.55,
+        "p95_ms": 447.35,
+        "max_ms": 476.64
+      },
+      "search_chunk": {
+        "n": 60,
+        "p50_ms": 12.2,
+        "p95_ms": 28.48,
+        "max_ms": 50.6
+      },
+      "search_document": {
+        "n": 60,
+        "p50_ms": 13.37,
+        "p95_ms": 24.47,
+        "max_ms": 29.63
+      },
+      "search_metadata": {
+        "n": 60,
+        "p50_ms": 9.98,
+        "p95_ms": 14.84,
+        "max_ms": 23.75
+      }
+    },
+    {
+      "documents": 100,
+      "upload": {
+        "n": 75,
+        "p50_ms": 353.85,
+        "p95_ms": 512.2,
+        "max_ms": 673.31
+      },
+      "search_chunk": {
+        "n": 60,
+        "p50_ms": 19.06,
+        "p95_ms": 81.21,
+        "max_ms": 84.93
+      },
+      "search_document": {
+        "n": 60,
+        "p50_ms": 24.63,
+        "p95_ms": 77.82,
+        "max_ms": 91.99
+      },
+      "search_metadata": {
+        "n": 60,
+        "p50_ms": 20.61,
+        "p95_ms": 25.35,
+        "max_ms": 37.46
+      }
+    },
+    {
+      "documents": 250,
+      "upload": {
+        "n": 150,
+        "p50_ms": 368.54,
+        "p95_ms": 485.39,
+        "max_ms": 562.05
+      },
+      "search_chunk": {
+        "n": 60,
+        "p50_ms": 23.72,
+        "p95_ms": 171.24,
+        "max_ms": 226.75
+      },
+      "search_document": {
+        "n": 60,
+        "p50_ms": 40.98,
+        "p95_ms": 178.97,
+        "max_ms": 224.71
+      },
+      "search_metadata": {
+        "n": 60,
+        "p50_ms": 32.2,
+        "p95_ms": 37.53,
+        "max_ms": 175.99
+      }
+    }
+  ],
+  "library_note": "synthetic documents (~3 KB each); the first search after an upload may rebuild the in-memory index, which shows in p95/max",
+  "concurrent_users_search": [
+    {
+      "users": 1,
+      "requests": 40,
+      "errors": [],
+      "error_count": 0,
+      "n": 40,
+      "p50_ms": 14.18,
+      "p95_ms": 27.15,
+      "max_ms": 72.7,
+      "wall_s_including_setup": 6.27
+    },
+    {
+      "users": 4,
+      "requests": 160,
+      "errors": [],
+      "error_count": 0,
+      "n": 160,
+      "p50_ms": 50.11,
+      "p95_ms": 70.9,
+      "max_ms": 84.08,
+      "wall_s_including_setup": 9.05
+    },
+    {
+      "users": 8,
+      "requests": 320,
+      "errors": [],
+      "error_count": 0,
+      "n": 320,
+      "p50_ms": 66.37,
+      "p95_ms": 144.83,
+      "max_ms": 330.24,
+      "wall_s_including_setup": 13.72
+    }
+  ],
+  "research_run": {
+    "final_status": "completed",
+    "tasks": 11,
+    "queue_latency_s_to_first_task_started": 0.918,
+    "completion_s": 1.59,
+    "poll_interval_s": 0.05,
+    "sse": {
+      "events": 97,
+      "ended_cleanly": true,
+      "max_gap_s": 0.532,
+      "first_event_s_after_create": 0.475
+    }
+  },
+  "environment": {
+    "platform": "Windows-10-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "cpu_count": 20,
+    "python": "3.11.0",
+    "database": "sqlite (local files)",
+    "client_and_server": "same machine, loopback",
+    "rate_limits": "off for this run",
+    "corpus": "synthetic generated text"
+  }
+}

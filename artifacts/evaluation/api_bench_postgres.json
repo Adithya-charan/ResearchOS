@@ -1,0 +1,176 @@
+{
+  "simple_endpoints": {
+    "health": {
+      "n": 200,
+      "p50_ms": 3.94,
+      "p95_ms": 5.9,
+      "max_ms": 15.59
+    },
+    "auth_me": {
+      "n": 200,
+      "p50_ms": 9.04,
+      "p95_ms": 12.61,
+      "max_ms": 58.9
+    },
+    "list_projects": {
+      "n": 200,
+      "p50_ms": 11.72,
+      "p95_ms": 15.12,
+      "max_ms": 28.6
+    },
+    "overview": {
+      "n": 200,
+      "p50_ms": 23.6,
+      "p95_ms": 46.4,
+      "max_ms": 296.73
+    },
+    "audit": {
+      "n": 200,
+      "p50_ms": 15.61,
+      "p95_ms": 25.21,
+      "max_ms": 33.39
+    }
+  },
+  "library_scaling": [
+    {
+      "documents": 25,
+      "upload": {
+        "n": 25,
+        "p50_ms": 467.12,
+        "p95_ms": 1071.77,
+        "max_ms": 1717.33
+      },
+      "search_chunk": {
+        "n": 60,
+        "p50_ms": 19.74,
+        "p95_ms": 61.48,
+        "max_ms": 121.55
+      },
+      "search_document": {
+        "n": 60,
+        "p50_ms": 26.57,
+        "p95_ms": 51.41,
+        "max_ms": 132.88
+      },
+      "search_metadata": {
+        "n": 60,
+        "p50_ms": 16.08,
+        "p95_ms": 25.55,
+        "max_ms": 30.47
+      }
+    },
+    {
+      "documents": 100,
+      "upload": {
+        "n": 75,
+        "p50_ms": 371.29,
+        "p95_ms": 495.0,
+        "max_ms": 598.27
+      },
+      "search_chunk": {
+        "n": 60,
+        "p50_ms": 21.36,
+        "p95_ms": 80.46,
+        "max_ms": 146.04
+      },
+      "search_document": {
+        "n": 60,
+        "p50_ms": 24.76,
+        "p95_ms": 66.12,
+        "max_ms": 83.36
+      },
+      "search_metadata": {
+        "n": 60,
+        "p50_ms": 20.55,
+        "p95_ms": 31.18,
+        "max_ms": 41.86
+      }
+    },
+    {
+      "documents": 250,
+      "upload": {
+        "n": 150,
+        "p50_ms": 346.54,
+        "p95_ms": 484.82,
+        "max_ms": 543.25
+      },
+      "search_chunk": {
+        "n": 60,
+        "p50_ms": 30.12,
+        "p95_ms": 179.18,
+        "max_ms": 198.79
+      },
+      "search_document": {
+        "n": 60,
+        "p50_ms": 37.85,
+        "p95_ms": 160.53,
+        "max_ms": 260.61
+      },
+      "search_metadata": {
+        "n": 60,
+        "p50_ms": 39.48,
+        "p95_ms": 54.37,
+        "max_ms": 248.32
+      }
+    }
+  ],
+  "library_note": "synthetic documents (~3 KB each); the first search after an upload may rebuild the in-memory index, which shows in p95/max",
+  "concurrent_users_search": [
+    {
+      "users": 1,
+      "requests": 40,
+      "errors": [],
+      "error_count": 0,
+      "n": 40,
+      "p50_ms": 17.65,
+      "p95_ms": 28.93,
+      "max_ms": 47.79,
+      "wall_s_including_setup": 6.56
+    },
+    {
+      "users": 4,
+      "requests": 160,
+      "errors": [],
+      "error_count": 0,
+      "n": 160,
+      "p50_ms": 48.92,
+      "p95_ms": 75.35,
+      "max_ms": 98.4,
+      "wall_s_including_setup": 9.0
+    },
+    {
+      "users": 8,
+      "requests": 320,
+      "errors": [],
+      "error_count": 0,
+      "n": 320,
+      "p50_ms": 120.37,
+      "p95_ms": 184.9,
+      "max_ms": 309.59,
+      "wall_s_including_setup": 14.15
+    }
+  ],
+  "research_run": {
+    "final_status": "completed",
+    "tasks": 11,
+    "queue_latency_s_to_first_task_started": 1.197,
+    "completion_s": 1.75,
+    "poll_interval_s": 0.05,
+    "sse": {
+      "events": 98,
+      "ended_cleanly": true,
+      "max_gap_s": 0.538,
+      "first_event_s_after_create": 0.585
+    }
+  },
+  "environment": {
+    "platform": "Windows-10-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "cpu_count": 20,
+    "python": "3.11.0",
+    "database": "postgresql (loopback)",
+    "client_and_server": "same machine, loopback",
+    "rate_limits": "off for this run",
+    "corpus": "synthetic generated text"
+  }
+}
