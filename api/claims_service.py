@@ -43,7 +43,7 @@ class _Library:
             with mgr.lock(self.project_id):
                 ok = mgr.get(self.project_id).verify_passage(passage_id).ok  # the stored original must still match
         return Candidate(passage_id=p.passage_id, document_id=p.document_id, text=p.text, page_number=p.page_number,
-                         quality=p.quality, resolved=ok, retrieval_method=method, retrieval_score=score)
+                         quality=p.quality, section=getattr(p, "section", "") or "", resolved=ok, retrieval_method=method, retrieval_score=score)
 
     def doc_info(self, doc_ids: set[str]) -> dict[str, dict]:
         mgr, out = self.rt.corpora, {}

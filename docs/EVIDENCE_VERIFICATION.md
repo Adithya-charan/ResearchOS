@@ -136,3 +136,28 @@ the same author; it must not be read as real-world accuracy.
 * Novelty is relative to the searched corpus only, and is a lexical comparison.
 * The evaluation corpus is synthetic and small; thresholds were set with it in view.
 * Real-source evaluation is still to do.
+
+## P11.2 evidence quality additions
+
+* **Traceable records.** Each evidence record keeps `source_location` (document, passage, page, section), the original `passage_text`, the claim's `quote`, a
+  `relevance_score` (the share of the claim's content stems the sentence covers), the role (supporting / contradicting / contextual), and a plain-language
+  `reason`. Passages judged irrelevant are listed by id under `irrelevant_passages` instead of silently disappearing; unresolvable and low-extraction-quality
+  passages are kept apart (`invalid_citations`, `unreliable_passages`).
+* **New contradiction rules** (each with a false-positive guard and tests): a figure that differs *for the same unit* ("19 percent" vs "40 percent") even
+  when another number recurs; comparisons with swapped roles ("A earlier than B" vs "B earlier than A") while treating opposite comparatives that say the same
+  thing as agreement; and a null result against a reported change ("no significant difference" vs "improved"), which the evaluation found being returned as
+  SUPPORTED.
+* **Still wrong, on purpose in the data:** paraphrases with no shared words are missed; a claim whose direction word conflicts with itself ("decreased as … grew") and a claim
+  matched on words in different roles ("highest on sand") can come back SUPPORTED; an unseen qualifier ("clay soils") is not noticed; a claim split across two
+  documents is not connected. [EVALUATION_P11.md](EVALUATION_P11.md) reports these as the unsupported-claim rate (0.22 on the P11 set).
+
+## P11.4 citation integrity and P11.5 report quality
+
+`GET /reports/{id}/structured` now also returns `citation_integrity`, recomputed on every read against the corpus **as it is now** (`research/evidence/citations.py`):
+each citation must name a passage that exists, belong to the cited document, have a matching page, quote text that occurs in the stored passage, and still
+match the text embedded in the report; deleted documents show as unresolvable, never as valid. Claims shown as supported with no valid citation are listed as
+`unsupported_claims`. It does **not** check that a passage supports its claim; that stays the verification status.
+
+The 18-section structure is unchanged. Each block now has an `epistemic` label (evidence / fact / inference / absence), and `structured.quality` summarises
+evidence coverage, contradictions, listed limitations and recommendations, with a reading note that coverage is not a measure of how much of the literature was read.
+Run reliability (`GET /runs/{id}/reliability`, also snapshotted in the report as `execution`) states which agents needed retries and which failed and why.

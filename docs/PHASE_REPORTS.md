@@ -791,3 +791,12 @@ testing was **not** done.
 **Not done / limits.** Docker/compose/CI unverified; HSTS/Secure cookies not checked over real HTTPS; the rate limiter is per process; experiments cannot run
 inside the container (no Docker sandbox in the container); zod, react-router and Vite major upgrades deferred; no production-scale or networked benchmarks; PyMuPDF
 decision open; P8 real-text training still postponed.
+
+## Master prompt v2, P11 - research intelligence quality and reliability (`research/gaps.py`, `research/evidence/citations.py`, `research/bm25/advanced.py`, `agent_engine/reliability.py`, `docs/P11_REPORT.md`, `docs/EVALUATION_P11.md`)
+
+Additive quality phase: opt-in advanced ranker with explained scores, richer evidence records plus three new contradiction rules, corpus-scoped gap analysis
+(observed vs hypothesis, every gap traceable, no novelty claims), citation integrity recomputed on every report read, an evidence-coverage / statement-type summary
+in the 18-section report, a per-run reliability view, a reproducible evaluation suite, and the matching web surfaces. Full backend suite 1060 passed / 1 skipped
+(+69 new); vitest 39; Playwright 3 passed / 2 gated; tsc and ESLint clean. Measured only on an invented corpus: unsupported-claim rate 0.22, paraphrase accuracy 0/5,
+retrieval gains modest (Recall@5 0.976 → 1.0 with feedback expansion, duplicates 9 → 0). The evaluation found a real verifier bug (null result vs reported change returned
+SUPPORTED), fixed with tests. Not committed. Full report: [P11_REPORT.md](P11_REPORT.md).

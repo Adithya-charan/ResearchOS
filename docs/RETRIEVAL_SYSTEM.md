@@ -75,3 +75,17 @@ blocked, no cross-project leakage) on every search level.
 * No external literature sources: only uploaded documents are searched. Nothing here implies coverage of any field.
 * IDF depends on the library, so scores are not comparable across libraries; document-level rank is the best passage's score.
 * The evaluation set is small and invented; real-corpus evaluation is outstanding and is the user's call.
+
+## P11.1 advanced ranker (opt-in)
+
+`GET /projects/{id}/search?ranker=advanced` (chunk level) uses `research/bm25/advanced.py` on top of the same BM25 index. The default (`ranker=bm25`) is
+unchanged. Implemented and individually switchable (`AdvancedConfig`): query normalisation, phrase bonus, title and heading boost, prefix variants,
+pseudo-relevance feedback (expansion terms taken from the corpus's own top passages: no thesaurus, no model), near-duplicate suppression, per-document cap.
+Every hit carries an `explanation` (BM25 / expansion / phrase / title / heading components that add up to the score, per-term contributions, the expansion
+terms used, and any duplicates it replaced). With every option off it reproduces the baseline exactly (tested).
+
+**Evidence for what to turn on** (45 queries, invented corpus, `artifacts/evaluation/retrieval_p11.json`, full discussion in [EVALUATION_P11.md](EVALUATION_P11.md)):
+feedback expansion raised vocabulary-mismatch Recall@3 from 0.917 to 1.0 and overall Recall@5 from 0.976 to 1.0; de-duplication removed every duplicate pair
+from the top 5 (9 → 0); phrase, title and normalisation changed nothing measurable; heading boost and variants made some measures worse. So the recommended
+setting is `normalize + prf + dedupe` only, and the baseline was **not** replaced. Retrieval is still lexical: it does not understand meaning, and expansion
+terms come from the same documents, so a vocabulary no document uses is still unreachable.

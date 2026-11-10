@@ -1,0 +1,132 @@
+{
+ "_about": "P11 evaluation corpus. EVERY DOCUMENT IS INVENTED for testing (CC0-1.0); none is a real paper and no figure is a real measurement. Terminology is varied on purpose (capacity fade / capacity loss, swelling / volume expansion, sparsification / sparse updates) so paraphrase queries are possible. Pairs bat4/bat5 and soil1/soil2 conflict on purpose; dup1 is a near-copy of bat1.",
+ "docs": [
+  {
+   "id": "bat1",
+   "title": "Silicon anode volume expansion during cycling",
+   "year": 2021,
+   "domain": "batteries",
+   "text": "Abstract\n\nSilicon anodes store far more lithium than graphite but undergo large volume expansion during cycling. We measured the thickness growth of silicon anodes in thirty pouch cells.\n\n1. Methods\n\nEach cell was cycled between 3.0 and 4.2 volts at a rate of C/3. Thickness was recorded with a dial gauge after every fifty cycles.\n\n2. Results\n\nSilicon anode volume expansion reached 18 percent after two hundred cycles, and capacity fell by 22 percent over the same period. Uncoated cells expanded more than cells with a carbon coating.\n\n3. Limitations\n\nOnly one cell format was tested and calendar effects were not separated from cycling effects."
+  },
+  {
+   "id": "dup1",
+   "title": "Silicon anode volume expansion during cycling (preprint)",
+   "year": 2021,
+   "domain": "batteries",
+   "text": "Abstract\n\nSilicon anodes store far more lithium than graphite but undergo large volume expansion during cycling. We measured the thickness growth of silicon anodes in thirty pouch cells.\n\n1. Methods\n\nEach cell was cycled between 3.0 and 4.2 volts at a rate of C/3. Thickness was recorded with a dial gauge after every fifty cycles.\n\n2. Results\n\nSilicon anode volume expansion reached 18 percent after two hundred cycles, and capacity fell by 22 percent over the same period.",
+   "duplicate_of": "bat1"
+  },
+  {
+   "id": "bat2",
+   "title": "Carbon coating reduces swelling of silicon electrodes",
+   "year": 2022,
+   "domain": "batteries",
+   "text": "Abstract\n\nA thin carbon coating limits the swelling of silicon electrodes. We compared coated and uncoated electrodes over repeated charge cycles.\n\n1. Results\n\nThe carbon coating halved electrode swelling, from 18 percent to 9 percent after two hundred cycles. Capacity retention improved from 78 percent to 91 percent.\n\n2. Limitations\n\nCoating thickness was not varied, so the optimum thickness is unknown."
+  },
+  {
+   "id": "bat3",
+   "title": "Capacity fade of cells stored at elevated temperature",
+   "year": 2020,
+   "domain": "batteries",
+   "text": "Abstract\n\nCapacity loss during storage depends on temperature. We stored charged cells at 25, 35 and 45 degrees Celsius for twelve months.\n\n1. Results\n\nCapacity fade averaged 0.5 percent per month at 25 degrees and 3 percent per month at 45 degrees. Degradation accelerated with state of charge.\n\n2. Limitations\n\nCells came from a single manufacturer and no cycling was performed."
+  },
+  {
+   "id": "bat4",
+   "title": "Fluoroethylene carbonate additive and fast charging",
+   "year": 2022,
+   "domain": "batteries",
+   "text": "Abstract\n\nWe tested a fluoroethylene carbonate electrolyte additive under fast charging at 3C.\n\n1. Results\n\nThe additive improved capacity retention by twelve percentage points after three hundred fast charge cycles. Cells with the additive formed a thinner interface layer.\n\n2. Limitations\n\nOnly one additive concentration was evaluated."
+  },
+  {
+   "id": "bat5",
+   "title": "Additive-free electrolyte shows no benefit at fast charge",
+   "year": 2023,
+   "domain": "batteries",
+   "text": "Abstract\n\nWe repeated fast charging tests at 3C with and without a fluoroethylene carbonate additive.\n\n1. Results\n\nThe additive gave no significant difference in capacity retention after three hundred fast charge cycles. Interface layer thickness was similar with and without the additive.\n\n2. Limitations\n\nThe cells used a different cathode chemistry from earlier reports."
+  },
+  {
+   "id": "coral1",
+   "title": "Thermal stress and coral bleaching thresholds",
+   "year": 2019,
+   "domain": "corals",
+   "text": "Abstract\n\nCoral bleaching follows accumulated heat stress. We related bleaching to degree heating weeks at twelve reefs.\n\n1. Results\n\nBleaching became widespread once degree heating weeks exceeded four. Reefs with variable temperature bleached less severely.\n\n2. Limitations\n\nSurveys were visual and depth was not controlled."
+  },
+  {
+   "id": "coral2",
+   "title": "Larval settlement on rubble substrate",
+   "year": 2021,
+   "domain": "corals",
+   "text": "Abstract\n\nSettlement of coral larvae depends on the substrate. We offered larvae rubble, bare rock and sand in tanks.\n\n1. Results\n\nLarval settlement was highest on rubble, with twice as many recruits as on bare rock. Almost no larvae settled on sand.\n\n2. Limitations\n\nTank conditions may not reflect reef currents."
+  },
+  {
+   "id": "coral3",
+   "title": "Ocean acidification and skeletal density",
+   "year": 2020,
+   "domain": "corals",
+   "text": "Abstract\n\nLower aragonite saturation limits calcification. We grew coral fragments under three acidification levels.\n\n1. Results\n\nSkeleton density decreased by eight percent at the lowest aragonite saturation. Growth rate fell by twelve percent.\n\n2. Limitations\n\nThe experiment lasted only ten weeks."
+  },
+  {
+   "id": "coral4",
+   "title": "Heat tolerant symbionts and recovery after bleaching",
+   "year": 2023,
+   "domain": "corals",
+   "text": "Abstract\n\nCorals hosting heat tolerant zooxanthellae may recover faster after thermal stress. We followed bleached colonies for a year.\n\n1. Results\n\nColonies hosting Durusdinium regained colour in half the time of colonies hosting other symbionts. Mortality was lower in the heat tolerant group.\n\n2. Limitations\n\nSymbiont identity was determined for a subset of colonies only."
+  },
+  {
+   "id": "soil1",
+   "title": "Biochar amendment raises crop yield",
+   "year": 2021,
+   "domain": "soil",
+   "text": "Abstract\n\nBiochar is proposed as a soil amendment. We applied biochar to loam soil in a three year field trial.\n\n1. Results\n\nBiochar increased maize yield by fourteen percent compared with untreated plots. Soil organic carbon also increased.\n\n2. Limitations\n\nOnly loam soil was tested."
+  },
+  {
+   "id": "soil2",
+   "title": "Biochar application lowers yield in sandy soils",
+   "year": 2022,
+   "domain": "soil",
+   "text": "Abstract\n\nWe tested biochar on sandy soils in a two year field trial.\n\n1. Results\n\nBiochar decreased maize yield by six percent compared with untreated plots. Nitrogen availability fell after application.\n\n2. Limitations\n\nBiochar feedstock differed from earlier trials."
+  },
+  {
+   "id": "soil3",
+   "title": "Mycorrhizal inoculation and phosphorus uptake",
+   "year": 2020,
+   "domain": "soil",
+   "text": "Abstract\n\nArbuscular mycorrhizal fungi can improve nutrient uptake. We inoculated wheat seedlings and measured phosphorus content.\n\n1. Results\n\nMycorrhizal inoculation increased phosphorus uptake by twenty percent. Benefits vanished at high phosphorus supply.\n\n2. Limitations\n\nPlants were grown in pots, not fields."
+  },
+  {
+   "id": "soil4",
+   "title": "Legume rotation and soil nitrogen",
+   "year": 2019,
+   "domain": "soil",
+   "text": "Abstract\n\nRotating legumes with cereals may restore soil nitrogen. We measured nitrogen after three rotation cycles.\n\n1. Results\n\nSoil nitrogen increased by nine percent after a legume rotation compared with continuous cereal. Following cereal yield rose by seven percent.\n\n2. Limitations\n\nNo fertiliser comparison was made."
+  },
+  {
+   "id": "fl1",
+   "title": "Client drift in federated learning with non-iid data",
+   "year": 2021,
+   "domain": "federated",
+   "text": "Abstract\n\nWhen client data are not independent and identically distributed, local updates drift apart. We studied client drift as the number of local epochs grows.\n\n1. Results\n\nClient drift grew with the number of local epochs, and global accuracy fell by seven points at twenty local epochs.\n\n2. Limitations\n\nOnly image classification tasks were studied."
+  },
+  {
+   "id": "fl2",
+   "title": "Gradient compression with top-k sparsification",
+   "year": 2022,
+   "domain": "federated",
+   "text": "Abstract\n\nUploading full gradients is expensive. We applied top-k sparsification to client gradients.\n\n1. Results\n\nTop-k sparsification cut the bytes per round by ninety percent while accuracy dropped by one point.\n\n2. Limitations\n\nCompression error accumulated on slow networks."
+  },
+  {
+   "id": "fl3",
+   "title": "Differential privacy noise in federated training",
+   "year": 2022,
+   "domain": "federated",
+   "text": "Abstract\n\nPrivacy requires clipping and gaussian noise. We trained with several privacy budgets epsilon.\n\n1. Results\n\nA smaller privacy budget epsilon needed more noise and accuracy fell by five points at epsilon one.\n\n2. Limitations\n\nOnly one clipping norm was explored."
+  },
+  {
+   "id": "fl4",
+   "title": "Communication efficient training with sparse updates",
+   "year": 2023,
+   "domain": "federated",
+   "text": "Abstract\n\nSending sparse model updates reduces the upload volume of each client. We evaluated sparse updates against dense updates.\n\n1. Results\n\nSparse updates reduced upload volume by eighty five percent and final accuracy changed by less than one point.\n\n2. Limitations\n\nNetwork delay was simulated rather than measured."
+  }
+ ]
+}

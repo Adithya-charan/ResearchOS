@@ -4,6 +4,7 @@ import "@xyflow/react/dist/style.css";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Q, RequireProject } from "../components/common";
+import { ReliabilityPanel } from "../components/ReliabilityPanel";
 import { Badge, Card, CardTitle, EmptyState, KV, Mono, Notice, PageHeader, Select, StatusBadge, Table } from "../components/ui";
 import { api } from "../lib/api";
 import { agentName, fmtDate, fmtDuration } from "../lib/format";
@@ -115,6 +116,7 @@ function Command({ runId }: { runId: string }) {
           </div>
           <Card className="h-fit xl:sticky xl:top-0"><CardTitle>{sel ? "Task detail" : "Select a task"}</CardTitle>{sel ? <TaskPanel runId={runId} taskId={sel} key={sel} all={t} /> : <p className="text-sm text-muted">Click a node or a task title to inspect its input, output, executions and errors.</p>}</Card>
         </div>)}</Q>
+      <ReliabilityPanel runId={runId} active={active} />
       <Card><CardTitle>Agent roster</CardTitle>
         <Q q={agents} label="agents">{(a) => (
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">{a.agents.map((x) => (

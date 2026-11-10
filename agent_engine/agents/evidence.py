@@ -35,13 +35,13 @@ class _Passages:
             return Candidate(passage_id=passage_id, document_id=document_id or "", resolved=False, retrieval_method=method,
                              retrieval_score=score)
         return Candidate(passage_id=p.passage_id, document_id=p.document_id, text=p.text, page_number=p.page_number,
-                         quality=p.quality, resolved=True, retrieval_method=method, retrieval_score=score)
+                         quality=p.quality, section=getattr(p, "section", "") or "", resolved=True, retrieval_method=method, retrieval_score=score)
 
 
 def _hit_candidate(h, method: str) -> Candidate:
     """A search hit already carries the stored passage text, so it needs no second lookup."""
     return Candidate(passage_id=h.passage_id, document_id=h.document_id, text=h.text, page_number=h.page_number, quality=h.quality,
-                     resolved=True, retrieval_method=method, retrieval_score=h.score)
+                     section=getattr(h, "section", "") or "", resolved=True, retrieval_method=method, retrieval_score=h.score)
 
 
 def _dep_ids(task: TaskSpec) -> dict[str, str]:

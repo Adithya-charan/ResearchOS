@@ -1,0 +1,35 @@
+{
+ "_about": "P11 evidence cases over the invented p11 corpus (CC0-1.0). Claims are written by the author and the expected status is assigned BY MEANING, before the system was run on them; the system is not tuned to these labels. Statuses: SUPPORTED (a stored passage states it), PARTIALLY_SUPPORTED (part is stated, or sources disagree), CONTRADICTED (a stored passage states the opposite), INSUFFICIENT_EVIDENCE (the corpus does not address it). 'paraphrase' cases use words the passage does not use, so a lexical verifier is expected to miss some of them.",
+ "cases": [
+  {"id": "x01", "kind": "exact", "claim": "Silicon anode volume expansion reached 18 percent after two hundred cycles", "expected": "SUPPORTED", "documents": ["bat1"]},
+  {"id": "x02", "kind": "exact", "claim": "The carbon coating halved electrode swelling, from 18 percent to 9 percent after two hundred cycles", "expected": "SUPPORTED", "documents": ["bat2"]},
+  {"id": "x03", "kind": "exact", "claim": "Capacity fade averaged 0.5 percent per month at 25 degrees and 3 percent per month at 45 degrees", "expected": "SUPPORTED", "documents": ["bat3"]},
+  {"id": "x04", "kind": "exact", "claim": "Bleaching became widespread once degree heating weeks exceeded four", "expected": "SUPPORTED", "documents": ["coral1"]},
+  {"id": "x05", "kind": "exact", "claim": "Biochar increased maize yield by fourteen percent compared with untreated plots", "expected": "PARTIALLY_SUPPORTED", "documents": ["soil1", "soil2"], "note": "RELABELLED after the first run: it was first labelled SUPPORTED, but the corpus deliberately contains soil2 (biochar lowered yield in sandy soils), so a contested, partially supported status is the correct answer. The label was my mistake, not a verifier fault; the change is disclosed here and in docs/EVALUATION_P11.md."},
+  {"id": "x06", "kind": "exact", "claim": "Top-k sparsification cut the bytes per round by ninety percent while accuracy dropped by one point", "expected": "SUPPORTED", "documents": ["fl2"]},
+  {"id": "x07", "kind": "exact", "claim": "Larval settlement was highest on rubble, with twice as many recruits as on bare rock", "expected": "SUPPORTED", "documents": ["coral2"]},
+  {"id": "x08", "kind": "exact", "claim": "Mycorrhizal inoculation increased phosphorus uptake by twenty percent", "expected": "SUPPORTED", "documents": ["soil3"]},
+
+  {"id": "p01", "kind": "paraphrase", "claim": "Coral larvae settled most on rubble compared with bare rock", "expected": "SUPPORTED", "documents": ["coral2"]},
+  {"id": "p02", "kind": "paraphrase", "claim": "Heat tolerant algae helped bleached corals regain their colour in half the time", "expected": "SUPPORTED", "documents": ["coral4"]},
+  {"id": "p03", "kind": "paraphrase", "claim": "Adding noise for privacy lowered model accuracy by five points when epsilon was one", "expected": "SUPPORTED", "documents": ["fl3"]},
+  {"id": "p04", "kind": "paraphrase", "claim": "Storing cells hot made them lose capacity much faster than storing them at room temperature", "expected": "SUPPORTED", "documents": ["bat3"]},
+  {"id": "p05", "kind": "paraphrase", "claim": "Silicon electrodes grew in thickness by roughly a fifth after repeated charging", "expected": "SUPPORTED", "documents": ["bat1"]},
+
+  {"id": "c01", "kind": "contradictory", "claim": "Uncoated cells expanded less than cells with a carbon coating", "expected": "CONTRADICTED", "documents": ["bat1"]},
+  {"id": "c02", "kind": "contradictory", "claim": "Reefs with variable temperature bleached more severely", "expected": "CONTRADICTED", "documents": ["coral1"]},
+  {"id": "c03", "kind": "contradictory", "claim": "Sparse updates increased the upload volume of each client", "expected": "CONTRADICTED", "documents": ["fl4"]},
+  {"id": "c04", "kind": "contradictory", "claim": "Larval settlement was highest on sand", "expected": "CONTRADICTED", "documents": ["coral2"]},
+  {"id": "c05", "kind": "contradictory", "claim": "Skeleton density increased at the lowest aragonite saturation", "expected": "CONTRADICTED", "documents": ["coral3"]},
+  {"id": "c06", "kind": "contradictory", "claim": "Client drift decreased as the number of local epochs grew", "expected": "CONTRADICTED", "documents": ["fl1"]},
+
+  {"id": "i01", "kind": "insufficient", "claim": "Quantum error correction raises the surface code threshold", "expected": "INSUFFICIENT_EVIDENCE", "documents": []},
+  {"id": "i02", "kind": "insufficient", "claim": "Mortality after hip replacement surgery was lower in older patients", "expected": "INSUFFICIENT_EVIDENCE", "documents": []},
+  {"id": "i03", "kind": "insufficient", "claim": "Graphene membranes reduce the energy needed for desalination", "expected": "INSUFFICIENT_EVIDENCE", "documents": []},
+  {"id": "i04", "kind": "insufficient", "claim": "Biochar improved maize yield in clay soils", "expected": "INSUFFICIENT_EVIDENCE", "documents": []},
+  {"id": "i05", "kind": "insufficient", "claim": "Pruning attention heads preserved translation quality", "expected": "INSUFFICIENT_EVIDENCE", "documents": []},
+
+  {"id": "m01", "kind": "multi_document", "claim": "The additive improved capacity retention after three hundred fast charge cycles", "expected": "PARTIALLY_SUPPORTED", "documents": ["bat4", "bat5"], "note": "bat4 says it did, bat5 says no significant difference: sources disagree, so the right answer is a contested, partial status that surfaces both"},
+  {"id": "m02", "kind": "multi_document", "claim": "Biochar raised maize yield in loam soil but lowered it in sandy soil", "expected": "PARTIALLY_SUPPORTED", "documents": ["soil1", "soil2"], "note": "each half is stated by a different document; no single passage states both"}
+ ]
+}

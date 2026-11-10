@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { AgentOutputView } from "../components/AgentOutputView";
+import { LibraryGaps } from "../components/LibraryGaps";
 import { RequireProject } from "../components/common";
 import { Badge, Card, EmptyState, PageHeader } from "../components/ui";
 import { titleCase } from "../lib/format";
@@ -21,6 +22,9 @@ function Body({ projectId }: { projectId: string }) {
               <p className="mt-2 text-xs text-muted">Supporting passages: {g.evidence?.length ?? 0}</p>
               <p className="mt-1 text-xs"><Link className="text-accent underline" to="/evidence">Check claim "gap:{g.id}" on Evidence Verification</Link> · <Link className="text-accent underline" to="/hypotheses">Related hypotheses</Link></p></Card></li>))}</ul>);
       }}</AgentOutputView>
+      <h2 className="pt-2 text-base font-semibold tracking-tight">Across the whole library</h2>
+      <p className="-mt-2 max-w-3xl text-sm text-muted">Stated limitations, conflicting findings and themes found by comparing every document in the library, each linked to the passages it comes from.</p>
+      <LibraryGaps projectId={projectId} />
     </div>
   );
 }

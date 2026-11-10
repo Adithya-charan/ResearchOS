@@ -298,6 +298,31 @@ class Corpus:
             out.append(CorpusHit(h.passage, h.score, h.matched_terms, docs[h.passage.document_id], h.matched_phrases))
         return out
 
+    def search_explained(self, query: str, k: int = 8, filters: SearchFilters | None = None, config=None) -> list[tuple[CorpusHit, dict]]:
+        """Opt-in advanced lexical search (P11): the same passages and citations as `search`, ranked by `research.bm25.advanced` with a
+        per-hit explanation (score components, expansion terms, suppressed duplicates). The BM25 baseline stays the default."""
+        from research.bm25.advanced import RECOMMENDED, AdvancedSearcher
+
+        f = filters or SearchFilters()
+        ids = self._matching_ids(f)
+        if ids is not None and not ids:
+            return []
+        titles = {d.id: d.title for d in self.store.list_documents() if d.title}
+        hits = AdvancedSearcher(self.index, titles).search(query, k=k, config=config or RECOMMENDED, document_ids=ids)
+        if f.exclude_low_quality:
+            hits = [h for h in hits if h.passage.quality == "ok"]
+        docs: dict[str, DocumentRecord] = {}
+        out = []
+        for h in hits:
+            did = h.passage.document_id
+            if did not in docs:
+                docs[did] = self.store.get_document(did)  # type: ignore[assignment]
+            terms = tuple(h.term_contributions)
+            out.append((CorpusHit(h.passage, h.score, terms, docs[did], h.phrases),
+                        {"components": h.components, "term_contributions": h.term_contributions,
+                         "expansion_terms": list(h.expansion_terms), "suppressed_duplicates": list(h.duplicates)}))
+        return out
+
     def search_documents(self, query: str, k: int = 8, filters: SearchFilters | None = None) -> list[dict]:
         """Document-level results: each document once, ranked by its best passage, with its top chunk-level citations."""
         f = filters or SearchFilters()

@@ -43,7 +43,7 @@ def _cand(corpus: Corpus, passage_id: str, method: str, score: float | None) -> 
     if p is None:
         return Candidate(passage_id=passage_id, document_id="", resolved=False, retrieval_method=method, retrieval_score=score)
     return Candidate(passage_id=p.passage_id, document_id=p.document_id, text=p.text, page_number=p.page_number, quality=p.quality,
-                     resolved=corpus.verify_passage(passage_id).ok, retrieval_method=method, retrieval_score=score)
+                     section=p.section, resolved=corpus.verify_passage(passage_id).ok, retrieval_method=method, retrieval_score=score)
 
 
 def _evaluate_set(dataset: Path, workdir: Path) -> dict:

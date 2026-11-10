@@ -1,0 +1,377 @@
+[
+ {
+  "id": "e01",
+  "kind": "exact",
+  "query": "silicon anode volume expansion during cycling",
+  "relevant": [
+   "bat1"
+  ]
+ },
+ {
+  "id": "e02",
+  "kind": "exact",
+  "query": "carbon coating reduces swelling of silicon electrodes",
+  "relevant": [
+   "bat2"
+  ]
+ },
+ {
+  "id": "e03",
+  "kind": "exact",
+  "query": "degree heating weeks bleaching threshold",
+  "relevant": [
+   "coral1"
+  ]
+ },
+ {
+  "id": "e04",
+  "kind": "exact",
+  "query": "top-k sparsification bytes per round",
+  "relevant": [
+   "fl2"
+  ]
+ },
+ {
+  "id": "e05",
+  "kind": "exact",
+  "query": "client drift local epochs",
+  "relevant": [
+   "fl1"
+  ]
+ },
+ {
+  "id": "e06",
+  "kind": "exact",
+  "query": "mycorrhizal inoculation phosphorus uptake",
+  "relevant": [
+   "soil3"
+  ]
+ },
+ {
+  "id": "e07",
+  "kind": "exact",
+  "query": "larval settlement rubble",
+  "relevant": [
+   "coral2"
+  ]
+ },
+ {
+  "id": "e08",
+  "kind": "exact",
+  "query": "legume rotation soil nitrogen",
+  "relevant": [
+   "soil4"
+  ]
+ },
+ {
+  "id": "p01",
+  "kind": "paraphrase",
+  "query": "how much do silicon negative electrodes grow in thickness when charged repeatedly",
+  "relevant": [
+   "bat1"
+  ]
+ },
+ {
+  "id": "p02",
+  "kind": "paraphrase",
+  "query": "does a protective carbon layer limit expansion of silicon electrodes",
+  "relevant": [
+   "bat2"
+  ]
+ },
+ {
+  "id": "p03",
+  "kind": "paraphrase",
+  "query": "capacity loss of stored batteries at high temperature",
+  "relevant": [
+   "bat3"
+  ]
+ },
+ {
+  "id": "p04",
+  "kind": "paraphrase",
+  "query": "sending fewer parameters from clients to reduce communication cost",
+  "relevant": [
+   "fl2",
+   "fl4"
+  ]
+ },
+ {
+  "id": "p05",
+  "kind": "paraphrase",
+  "query": "do heat resistant algae help corals regain colour sooner",
+  "relevant": [
+   "coral4"
+  ]
+ },
+ {
+  "id": "p06",
+  "kind": "paraphrase",
+  "query": "effect of charred organic matter on maize harvest",
+  "relevant": [
+   "soil1",
+   "soil2"
+  ]
+ },
+ {
+  "id": "p07",
+  "kind": "paraphrase",
+  "query": "acidified seawater weakens coral skeleton",
+  "relevant": [
+   "coral3"
+  ]
+ },
+ {
+  "id": "p08",
+  "kind": "paraphrase",
+  "query": "how does adding noise for privacy hurt model accuracy",
+  "relevant": [
+   "fl3"
+  ]
+ },
+ {
+  "id": "p09",
+  "kind": "paraphrase",
+  "query": "fungi that help plants take up nutrients",
+  "relevant": [
+   "soil3"
+  ]
+ },
+ {
+  "id": "p10",
+  "kind": "paraphrase",
+  "query": "model divergence between devices with differently distributed data",
+  "relevant": [
+   "fl1"
+  ]
+ },
+ {
+  "id": "l01",
+  "kind": "long",
+  "query": "I would like to understand whether adding a fluoroethylene carbonate additive to the electrolyte actually improves how much capacity cells keep after many fast charging cycles at high current",
+  "relevant": [
+   "bat4",
+   "bat5"
+  ]
+ },
+ {
+  "id": "l02",
+  "kind": "long",
+  "query": "what is known about how much the yield of maize changes when biochar is added to the soil in field trials on different soil types",
+  "relevant": [
+   "soil1",
+   "soil2"
+  ]
+ },
+ {
+  "id": "l03",
+  "kind": "long",
+  "query": "studies measuring how much communication each client needs per round when gradients are compressed and how much accuracy is lost as a result",
+  "relevant": [
+   "fl2",
+   "fl4"
+  ]
+ },
+ {
+  "id": "l04",
+  "kind": "long",
+  "query": "evidence on whether coral larvae prefer to settle on rubble compared with bare rock or sand in laboratory tanks",
+  "relevant": [
+   "coral2"
+  ]
+ },
+ {
+  "id": "s01",
+  "kind": "short",
+  "query": "biochar",
+  "relevant": [
+   "soil1",
+   "soil2"
+  ]
+ },
+ {
+  "id": "s02",
+  "kind": "short",
+  "query": "bleaching",
+  "relevant": [
+   "coral1",
+   "coral4"
+  ]
+ },
+ {
+  "id": "s03",
+  "kind": "short",
+  "query": "epsilon",
+  "relevant": [
+   "fl3"
+  ]
+ },
+ {
+  "id": "s04",
+  "kind": "short",
+  "query": "silicon",
+  "relevant": [
+   "bat1",
+   "bat2"
+  ]
+ },
+ {
+  "id": "s05",
+  "kind": "short",
+  "query": "sparse",
+  "relevant": [
+   "fl2",
+   "fl4"
+  ]
+ },
+ {
+  "id": "h01",
+  "kind": "phrase",
+  "query": "\"capacity retention\" additive",
+  "relevant": [
+   "bat4",
+   "bat5"
+  ]
+ },
+ {
+  "id": "h02",
+  "kind": "phrase",
+  "query": "\"local epochs\" accuracy",
+  "relevant": [
+   "fl1"
+  ]
+ },
+ {
+  "id": "h03",
+  "kind": "phrase",
+  "query": "\"aragonite saturation\" density",
+  "relevant": [
+   "coral3"
+  ]
+ },
+ {
+  "id": "m01",
+  "kind": "multi",
+  "query": "silicon electrode expansion and how to reduce it",
+  "relevant": [
+   "bat1",
+   "bat2"
+  ]
+ },
+ {
+  "id": "m02",
+  "kind": "multi",
+  "query": "reducing bytes sent per round in federated training",
+  "relevant": [
+   "fl2",
+   "fl4"
+  ]
+ },
+ {
+  "id": "m03",
+  "kind": "multi",
+  "query": "coral recovery and bleaching after heat stress",
+  "relevant": [
+   "coral1",
+   "coral4"
+  ]
+ },
+ {
+  "id": "m04",
+  "kind": "multi",
+  "query": "nitrogen and phosphorus for crops",
+  "relevant": [
+   "soil3",
+   "soil4"
+  ]
+ },
+ {
+  "id": "m05",
+  "kind": "multi",
+  "query": "battery capacity fade and retention",
+  "relevant": [
+   "bat1",
+   "bat2",
+   "bat3",
+   "bat4",
+   "bat5"
+  ]
+ },
+ {
+  "id": "x01",
+  "kind": "missing",
+  "query": "quantum error correction surface code threshold",
+  "relevant": []
+ },
+ {
+  "id": "x02",
+  "kind": "missing",
+  "query": "transformer attention head pruning for translation",
+  "relevant": []
+ },
+ {
+  "id": "x03",
+  "kind": "missing",
+  "query": "gravitational wave detector mirror coatings",
+  "relevant": []
+ },
+ {
+  "id": "x04",
+  "kind": "missing",
+  "query": "mortality after hip replacement surgery",
+  "relevant": []
+ },
+ {
+  "id": "v01",
+  "kind": "vocab_mismatch",
+  "query": "swelling",
+  "relevant": [
+   "bat1",
+   "bat2"
+  ]
+ },
+ {
+  "id": "v02",
+  "kind": "vocab_mismatch",
+  "query": "negative electrode growth",
+  "relevant": [
+   "bat1",
+   "bat2"
+  ]
+ },
+ {
+  "id": "v03",
+  "kind": "vocab_mismatch",
+  "query": "reducing upload size",
+  "relevant": [
+   "fl2",
+   "fl4"
+  ]
+ },
+ {
+  "id": "v04",
+  "kind": "vocab_mismatch",
+  "query": "sparse gradients",
+  "relevant": [
+   "fl2",
+   "fl4"
+  ]
+ },
+ {
+  "id": "v05",
+  "kind": "vocab_mismatch",
+  "query": "expansion of electrodes",
+  "relevant": [
+   "bat1",
+   "bat2"
+  ]
+ },
+ {
+  "id": "v06",
+  "kind": "vocab_mismatch",
+  "query": "zooxanthellae recovery",
+  "relevant": [
+   "coral4"
+  ]
+ }
+]

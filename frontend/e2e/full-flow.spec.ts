@@ -54,10 +54,17 @@ test("sign up → project → library → research run → agents → evidence �
   await page.getByRole("link", { name: "Agent command center" }).first().click();
   await expect(page.getByRole("region", { name: /Task dependency graph/ })).toBeVisible();
   await expect(page.getByRole("table", { name: "Tasks by agent" })).toBeVisible();
+  // P11.6: what happened to each agent, from the run's stored records
+  await expect(page.getByRole("heading", { name: "Execution reliability" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Attempts, retries and timeouts per agent" })).toBeVisible();
+  await expect(page.getByText("Every task succeeded.").or(page.getByText(/some attempts failed and were retried/))).toBeVisible();
 
   // gaps and hypotheses derived read-only from agent output
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Research Gaps", exact: true }).click();
   await expect(page.getByText(/accepted document/).first()).toBeVisible();
+  // P11.3: library-wide analysis states its scope and links each gap to passages
+  await expect(page.getByRole("heading", { name: "Across the whole library" })).toBeVisible();
+  await expect(page.getByText(/only the documents in this library/i)).toBeVisible();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Hypotheses", exact: true }).click();
   await expect(page.getByText(/not a finding|untested proposal/i).first()).toBeVisible();
 
@@ -79,6 +86,11 @@ test("sign up → project → library → research run → agents → evidence �
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Research Reports", exact: true }).click();
   await page.getByRole("link", { name: /Research report/ }).first().click();
   await expect(page.getByRole("heading", { name: /^1\. / })).toBeVisible();
+  // P11.4/P11.5: evidence coverage and citation integrity are computed by the API, not by the page
+  const quality = page.getByRole("region", { name: "Evidence and citation quality" });
+  await expect(quality.getByRole("heading", { name: "Evidence coverage" })).toBeVisible();
+  await expect(quality.getByRole("heading", { name: /Citation integrity/ })).toBeVisible();
+  await expect(quality.getByText(/does not check that the passage supports the claim/i)).toBeVisible();
   // the Markdown export is fetched through the API client (with the session cookie) and saved by the page
   const [exported] = await Promise.all([page.waitForResponse((r) => /\/export\.md$/.test(r.url())), page.getByRole("button", { name: "Markdown", exact: true }).click()]);
   expect(exported.status()).toBe(200);

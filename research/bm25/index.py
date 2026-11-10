@@ -161,6 +161,38 @@ class BM25Index:
         ranked = sorted(grouped.items(), key=lambda kv: (-kv[1][0].score, kv[0]))[:k]
         return [DocumentHit(d, hs[0].score, tuple(hs[:passages_per_document])) for d, hs in ranked]
 
+    # ------------------------------------------------------------------ weighted-stem scoring (P11 advanced retrieval)
+    def vocabulary(self) -> list[str]:
+        """Every analysed term in the index (sorted), for deterministic corpus-vocabulary expansion."""
+        return sorted(self._postings)
+
+    def doc_freq(self, term: str) -> int:
+        return len(self._postings.get(term, ()))
+
+    def score_stems(self, weights: dict[str, float], document_ids: set[str] | None = None,
+                    predicate: Callable[[Passage], bool] | None = None) -> dict[int, dict[str, float]]:
+        """Weighted Okapi BM25 over already-analysed stems: {passage index: {stem: contribution}}. With every weight 1.0 and the stems of
+        `analyze(query)`, the summed contributions equal `search`'s score exactly (the baseline is the special case, not a different model).
+        Exposed per term so a ranking can be explained."""
+        out: dict[int, dict[str, float]] = {}
+        if not self._passages:
+            return out
+        avg_len = max(self._total_len / len(self._passages), 1e-9)
+        for term, w in weights.items():
+            idf = self.idf(term)
+            for idx, tf in self._postings.get(term, ()):
+                p = self._passages[idx]
+                if document_ids is not None and p.document_id not in document_ids:
+                    continue
+                if predicate is not None and not predicate(p):
+                    continue
+                norm = tf + self.k1 * (1 - self.b + self.b * self._lengths[idx] / avg_len)
+                out.setdefault(idx, {})[term] = w * idf * tf * (self.k1 + 1) / norm
+        return out
+
+    def passage_at(self, idx: int) -> Passage:
+        return self._passages[idx]
+
 
 _HEADING_RE = re.compile(r"^(?:\d+\.\s+\S.*|Abstract|Conclusion\.?)$")
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")

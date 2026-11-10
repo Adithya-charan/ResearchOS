@@ -62,9 +62,39 @@ export interface NoveltyRow { id: string; project_id: string; run_id: string | n
 
 export interface ReportSummary { id: string; run_id: string; title: string; status: string; version: number; review: string; updated_at: string }
 export interface ReportFull { id: string; project_id: string; run_id: string; title: string; version: number; created_at: string; updated_at: string; meta: Record<string, unknown>; content_intact: boolean; content: Record<string, unknown>; editable?: Record<string, unknown> }
-export interface ReportBlock { text: string; kind: string; status: ClaimStatus | null; strength?: string | null; claim_key?: string | null; citations: { document_id: string; page_number: number | null; passage_id: string; quote: string; source_text?: string; resolvable: boolean }[] }
+export interface ReportBlock { text: string; kind: string; epistemic?: "evidence" | "fact" | "inference" | "absence"; status: ClaimStatus | null; strength?: string | null; claim_key?: string | null; citations: { document_id: string; page_number: number | null; passage_id: string; quote: string; source_text?: string; resolvable: boolean }[] }
 export interface ReportSection { id: string; number: number; title: string; blocks: ReportBlock[] }
-export interface StructuredReport { report_id: string; version: number; content_sha256: string; structured: { title: string; sections: ReportSection[]; claim_counts: Record<string, number>; unresolved_claims: unknown[]; verification_rounds: number; rules?: string }; verification: { claims_checked: number; counts: Record<string, number>; needs_followup: number; round: number }[] }
+export interface ReportQuality {
+  statement_mix: Record<string, number>; statement_meaning: Record<string, string>;
+  evidence_coverage: { claims: number; by_status: Record<string, number>; supported_or_partial: number; fraction_supported_or_partial: number | null; claims_not_fully_supported: number; documents_cited: number; blocks_with_citation: number };
+  contradictions: number; limitations_listed: number; recommendations_listed: number; assumptions: string; reading_note: string;
+}
+export interface CitationIssue { section: number; block: number; claim_key: string | null; passage_id: string | null; document_id: string | null; issue: string; detail: string }
+export interface CitationIntegrity {
+  citations_checked: number; citations_valid: number; citations_with_issues: number; integrity_rate: number | null; documents_cited: number;
+  claim_blocks: number; claim_blocks_with_a_valid_citation: number;
+  unsupported_claims: { section: number; block: number; claim_key: string | null; status: string | null; text: string; reason: string }[];
+  issues: CitationIssue[]; warnings: CitationIssue[]; by_issue: Record<string, number>; ok: boolean; scope: string;
+}
+export interface StructuredReport { report_id: string; version: number; content_sha256: string; citation_integrity?: CitationIntegrity; structured: { title: string; sections: ReportSection[]; claim_counts: Record<string, number>; unresolved_claims: unknown[]; verification_rounds: number; rules?: string; quality?: ReportQuality }; verification: { claims_checked: number; counts: Record<string, number>; needs_followup: number; round: number }[] }
+
+export interface GapEvidence { document_id: string; passage_id: string; page_number: number | null; quote: string }
+export interface LibraryGap { id: string; type: string; basis: "observed" | "hypothesis"; statement: string; evidence: GapEvidence[]; documents: string[]; caveat?: string; verifier_reason?: string; themes?: string[] }
+export interface LibraryGapReport {
+  scope: string; limitations: string[]; documents: number; gaps: LibraryGap[]; note?: string; excluded_not_quotable: number; traceability_problems: string[];
+  themes: { frequent: { theme: string; documents: string[]; document_count: number }[]; single_document: { theme: string; document: string; title: string }[] };
+  follow_ups: { for_gap: string; basis: string; suggestion: string; documents: string[] }[];
+  counts: { observed: number; hypothesis: number; by_type: Record<string, number> };
+}
+
+export interface RunReliability {
+  run_id: string; run_status: string; finished: boolean; degraded: boolean; report_available: boolean; tasks: number; note: string; guarantees: string[];
+  agents: Record<string, { tasks: number; succeeded: number; failed: number; skipped: number; cancelled: number; rejected: number; attempts: number; retries: number; timeouts: number; abandoned_attempts: number; duration_s: number }>;
+  failures: { task_id: string; agent_type: string; title: string; status: string; error: string | null; attempts: number; retries_used: number; timed_out: boolean }[];
+  skipped: { task_id: string; agent_type: string; title: string; reason: string | null; caused_by: { task_id: string; agent_type: string; status: string }[] }[];
+  partial_results: { task_id: string; agent_type: string; title: string }[];
+  retried_tasks: { task_id: string; agent_type: string; retries_used: number }[];
+}
 export interface ReportVersion { version: number; editor_id: string; summary: string; at: string; editable: Record<string, unknown> }
 
 export interface Approval { kind: "task" | "experiment"; id: string | number; run_id?: string; project_id: string; title: string; agent_type?: string; task_id?: string; decision: string | null; comment?: string; requested_at: string; decided_at?: string | null; reviewer?: string | null; review_hint?: string; code_sha256?: string }

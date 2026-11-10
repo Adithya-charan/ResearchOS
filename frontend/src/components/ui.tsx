@@ -149,7 +149,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
 }
 
 export const Table = ({ caption, head, children }: { caption: string; head: string[]; children: ReactNode }) => (
-  <div className="max-h-[70vh] overflow-auto rounded-lg border border-line bg-surface">
+  <div tabIndex={0} role="region" aria-label={caption} className="max-h-[70vh] overflow-auto rounded-lg border border-line bg-surface">
     <table className="w-full text-left text-sm"><caption className="sr-only">{caption}</caption>
       <thead className="sticky top-0 bg-surface-2 text-[11px] uppercase tracking-wide text-muted"><tr>{head.map((h) => <th key={h} scope="col" className="px-3 py-1.5 font-medium">{h}</th>)}</tr></thead>
       <tbody className="divide-y divide-line [&_td]:px-3 [&_td]:py-1.5 [&_tr:hover]:bg-surface-2/60">{children}</tbody></table>

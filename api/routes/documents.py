@@ -168,13 +168,36 @@ def reprocess_document(project_id: str, doc_id: str, request: Request, auth: Cur
     return body
 
 
+@router.get("/gaps", dependencies=[Depends(rate_limit("search"))])
+def corpus_gaps(project_id: str, request: Request, auth: CurrentAuth, db: DB):
+    """Research gaps within this project's own library (P11.3). Observed gaps are quotations or computed facts about stored passages;
+    hypotheses are labelled suggestions. Nothing here is a claim about the literature outside the library or about novelty.
+    Documents not licensed for quoting are left out, because every gap quotes a passage."""
+    from research.bm25.index import BM25Index  # noqa: PLC0415
+    from research.gaps import analyze_corpus_gaps, validate_gap_report  # noqa: PLC0415 - only needed on this route
+
+    owned_project(db, project_id, auth.user.id)
+    mgr = request.app.state.corpora
+    if not mgr.exists(project_id):
+        return analyze_corpus_gaps(BM25Index(), {}) | {"excluded_not_quotable": 0, "traceability_problems": []}
+    with mgr.lock(project_id):
+        corpus = mgr.get(project_id)
+        docs = corpus.list_documents()
+        quotable = {d.id: d.title for d in docs if "quote" in d.allowed_use}
+        report = analyze_corpus_gaps(corpus.index, quotable)
+        report["excluded_not_quotable"] = len(docs) - len(quotable)
+        report["traceability_problems"] = validate_gap_report(report, corpus.index)  # expected to be empty; shown so a failure is never silent
+    return report
+
+
 @router.get("/search", dependencies=[Depends(rate_limit("search"))])
 def search(project_id: str, request: Request, auth: CurrentAuth, db: DB, q: str = Query(min_length=2, max_length=500),
            k: int = Query(8, ge=1, le=50), year_min: int | None = Query(None, ge=1000, le=3000),
            year_max: int | None = Query(None, ge=1000, le=3000), exclude_low_quality: bool = False,
            level: Literal["chunk", "document", "metadata"] = "chunk", document_type: str | None = Query(None, max_length=20),
-           author: str | None = Query(None, max_length=200)):
-    """BM25 over the project's own documents. "double quotes" in q require that exact phrase. level=chunk returns passages,
+           author: str | None = Query(None, max_length=200), ranker: Literal["bm25", "advanced"] = "bm25"):
+    """BM25 over the project's own documents. ranker=advanced (chunk level only) adds corpus-vocabulary expansion and near-duplicate
+    suppression, with an `explanation` per hit; it is opt-in and still lexical (not semantic search). "double quotes" in q require that exact phrase. level=chunk returns passages,
     document returns each document once (ranked by its best passage), metadata searches titles/authors/DOI/source instead of text."""
     owned_project(db, project_id, auth.user.id)
     mgr = request.app.state.corpora
@@ -189,6 +212,14 @@ def search(project_id: str, request: Request, auth: CurrentAuth, db: DB, q: str 
         if level == "document":
             return {"query": q, "level": level, "method": "BM25 (lexical), best passage per document",
                     "hits": corpus.search_documents(q, k, filters)}
+        if ranker == "advanced" and level == "chunk":
+            explained = corpus.search_explained(q, k, filters)
+            return {"query": q, "level": level, "method": "BM25 + corpus-vocabulary expansion + duplicate suppression (lexical, opt-in)",
+                    "hits": [{"document_id": h.passage.document_id, "title": h.document.title, "year": h.document.year,
+                              "passage_id": h.passage.passage_id, "page_number": h.passage.page_number, "section": h.passage.section,
+                              "quality": h.passage.quality, "score": round(h.score, 4), "matched_terms": list(h.matched_terms),
+                              "matched_phrases": list(h.matched_phrases), "text": h.passage.text, "citation": h.citation(),
+                              "explanation": ex} for h, ex in explained]}
         hits = corpus.search(q, k, filters)
     return {"query": q, "level": level, "method": "BM25 (lexical)", "hits": [
         {"document_id": h.passage.document_id, "title": h.document.title, "year": h.document.year,

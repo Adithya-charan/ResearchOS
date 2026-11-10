@@ -1,0 +1,1574 @@
+{
+  "dataset": {
+    "documents": 18,
+    "passages": 55,
+    "queries": 45,
+    "kinds": [
+      "exact",
+      "long",
+      "missing",
+      "multi",
+      "paraphrase",
+      "phrase",
+      "short",
+      "vocab_mismatch"
+    ],
+    "synthetic": true
+  },
+  "ks": [
+    1,
+    3,
+    5
+  ],
+  "results": {
+    "baseline BM25 (original search_documents)": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "identity (all off)": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "normalize": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "phrase_bonus": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "title_boost": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "heading_boost": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4715,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9415,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 0.875,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "variants": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9837,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3073,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9878,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.9333,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6,
+          "precision@5": 0.36,
+          "recall@1": 0.6,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.8333,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "prf(5 terms)": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4878,
+        "precision@5": 0.3122,
+        "recall@1": 0.7244,
+        "recall@3": 0.9659,
+        "recall@5": 1.0,
+        "duplicate_pairs_in_top5": 13
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 0.875,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6,
+          "precision@5": 0.36,
+          "recall@1": 0.6,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6111,
+          "precision@5": 0.3667,
+          "recall@1": 0.5833,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 5
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "dedupe": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 0
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 0
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 0
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "max_per_document=2": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3024,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9756,
+        "duplicate_pairs_in_top5": 9
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 2
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 1
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 3
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5333,
+          "precision@5": 0.32,
+          "recall@1": 0.6,
+          "recall@3": 0.9,
+          "recall@5": 0.9,
+          "duplicate_pairs_in_top5": 1
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 2
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "prf+dedupe": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4878,
+        "precision@5": 0.3122,
+        "recall@1": 0.7244,
+        "recall@3": 0.9659,
+        "recall@5": 1.0,
+        "duplicate_pairs_in_top5": 0
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 0.875,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6,
+          "precision@5": 0.36,
+          "recall@1": 0.6,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6111,
+          "precision@5": 0.3667,
+          "recall@1": 0.5833,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "normalize+prf+dedupe": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4878,
+        "precision@5": 0.3122,
+        "recall@1": 0.7244,
+        "recall@3": 0.9659,
+        "recall@5": 1.0,
+        "duplicate_pairs_in_top5": 0
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 0.875,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6,
+          "precision@5": 0.36,
+          "recall@1": 0.6,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6111,
+          "precision@5": 0.3667,
+          "recall@1": 0.5833,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "normalize+title+variants+dedupe": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9837,
+        "precision@1": 0.9756,
+        "precision@3": 0.4797,
+        "precision@5": 0.3073,
+        "recall@1": 0.7244,
+        "recall@3": 0.9537,
+        "recall@5": 0.9878,
+        "duplicate_pairs_in_top5": 0
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.9333,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6,
+          "precision@5": 0.36,
+          "recall@1": 0.6,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5,
+          "precision@5": 0.3333,
+          "recall@1": 0.5833,
+          "recall@3": 0.8333,
+          "recall@5": 0.9167,
+          "duplicate_pairs_in_top5": 0
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    },
+    "all features": {
+      "overall": {
+        "queries": 41,
+        "mrr": 0.9878,
+        "precision@1": 0.9756,
+        "precision@3": 0.4878,
+        "precision@5": 0.3122,
+        "recall@1": 0.7244,
+        "recall@3": 0.9659,
+        "recall@5": 1.0,
+        "duplicate_pairs_in_top5": 0
+      },
+      "by_kind": {
+        "exact": {
+          "queries": 8,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.3333,
+          "precision@5": 0.2,
+          "recall@1": 1.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "long": {
+          "queries": 4,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5833,
+          "precision@5": 0.35,
+          "recall@1": 0.625,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "multi": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6667,
+          "precision@5": 0.52,
+          "recall@1": 0.44,
+          "recall@3": 0.82,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "paraphrase": {
+          "queries": 10,
+          "mrr": 0.95,
+          "precision@1": 0.9,
+          "precision@3": 0.4,
+          "precision@5": 0.24,
+          "recall@1": 0.8,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "phrase": {
+          "queries": 3,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.4444,
+          "precision@5": 0.2667,
+          "recall@1": 0.8333,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "short": {
+          "queries": 5,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.6,
+          "precision@5": 0.36,
+          "recall@1": 0.6,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        },
+        "vocab_mismatch": {
+          "queries": 6,
+          "mrr": 1.0,
+          "precision@1": 1.0,
+          "precision@3": 0.5556,
+          "precision@5": 0.3667,
+          "recall@1": 0.5833,
+          "recall@3": 0.9167,
+          "recall@5": 1.0,
+          "duplicate_pairs_in_top5": 0
+        }
+      },
+      "no_relevant_document_queries": {
+        "queries": 4,
+        "returned_any_result": 2,
+        "note": "these queries have no relevant document; any result is a false lead and a ranker cannot tell"
+      }
+    }
+  },
+  "limitations": [
+    "The corpus is 18 invented documents (CC0) written for this test; scores say how the methods behave on this set, not on real literature.",
+    "Relevance labels were written by the same author as the documents and queries; a human second annotator has not reviewed them.",
+    "All methods are lexical. Expansion uses only the corpus's own vocabulary and top-passage co-occurrence; it does not know synonyms.",
+    "Document-level ranking uses the best passage; duplicates count against precision unless suppressed.",
+    "Queries with no relevant document are reported separately; they are not part of Recall/Precision/MRR."
+  ],
+  "configurations": {
+    "identity (all off)": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "normalize": {
+      "normalize": true,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "phrase_bonus": {
+      "normalize": false,
+      "phrase_bonus": 0.5,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "title_boost": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 1.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "heading_boost": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 1.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "variants": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": true,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "prf(5 terms)": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 5,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "dedupe": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": true,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "max_per_document=2": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": false,
+      "duplicate_threshold": 0.8,
+      "max_per_document": 2
+    },
+    "prf+dedupe": {
+      "normalize": false,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 5,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": true,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "normalize+prf+dedupe": {
+      "normalize": true,
+      "phrase_bonus": 0.0,
+      "title_boost": 0.0,
+      "heading_boost": 0.0,
+      "variants": false,
+      "variant_weight": 0.5,
+      "prf_terms": 5,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": true,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "normalize+title+variants+dedupe": {
+      "normalize": true,
+      "phrase_bonus": 0.0,
+      "title_boost": 1.0,
+      "heading_boost": 0.0,
+      "variants": true,
+      "variant_weight": 0.5,
+      "prf_terms": 0,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": true,
+      "duplicate_threshold": 0.8,
+      "max_per_document": null
+    },
+    "all features": {
+      "normalize": true,
+      "phrase_bonus": 0.5,
+      "title_boost": 1.0,
+      "heading_boost": 0.5,
+      "variants": true,
+      "variant_weight": 0.5,
+      "prf_terms": 5,
+      "prf_docs": 3,
+      "prf_weight": 0.3,
+      "suppress_duplicates": true,
+      "duplicate_threshold": 0.8,
+      "max_per_document": 2
+    }
+  }
+}

@@ -635,6 +635,18 @@ def test_run_report_claims_and_structured_view_over_the_api(tmp_path):
         assert n > 5
         st = c.get(f"/reports/{view['id']}/structured").json()
         assert st["content_sha256"] == view["meta"]["content_sha256"] and len(st["structured"]["sections"]) == 18
+        rel = c.get(f"/runs/{rid}/reliability").json()  # P11.6: the nine-role run's execution record
+        assert rel["finished"] and not rel["degraded"] and rel["failures"] == [] and rel["report_available"] is True
+        assert sum(a["succeeded"] for a in rel["agents"].values()) == rel["tasks"] and view["content"]["execution"]["run_id"] == rel["run_id"]
+        ci = st["citation_integrity"]  # P11.4: recomputed on read against the stored passages
+        assert ci["citations_checked"] >= n and ci["citations_with_issues"] == 0 and ci["integrity_rate"] == 1.0
+        assert ci["unsupported_claims"] == [] and ci["ok"] is True and "does not check" in ci["scope"]
+        q = st["structured"]["quality"]  # P11.5: evidence coverage and the mix of statement types
+        cov = q["evidence_coverage"]
+        assert cov["claims"] == sum(st["structured"]["claim_counts"].values()) and cov["documents_cited"] >= 1
+        assert sum(q["statement_mix"].values()) == sum(len(s["blocks"]) for s in st["structured"]["sections"])
+        assert all(b["epistemic"] in q["statement_meaning"] for s in st["structured"]["sections"] for b in s["blocks"])
+        assert "not a measure of how much" in q["reading_note"] and "Evidence coverage:" in c.get(f"/reports/{view['id']}/structured.md").text
         md_resp = c.get(f"/reports/{view['id']}/structured.md")
         assert md_resp.status_code == 200 and "## 13. Verification results" in md_resp.text
         # version history is the existing mechanism; the generated content stays immutable
@@ -655,6 +667,7 @@ def test_run_report_claims_and_structured_view_over_the_api(tmp_path):
         sign_in(c, "mallory@example.org")
         assert c.get(f"/reports/{view['id']}/structured").status_code == 404
         assert c.get(f"/reports/{view['id']}/structured.md").status_code == 404
+        assert c.get(f"/runs/{rid}/reliability").status_code == 404
         assert c.get(f"/projects/{pid}/claims").status_code == 404
         mh = {"X-CSRF-Token": c.get("/auth/me").json().get("csrf_token", "")} if c.get("/auth/me").status_code == 200 else {}
         assert c.post(f"/runs/{rid}/claims/extract", headers=mh).status_code in (403, 404)

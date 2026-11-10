@@ -40,6 +40,17 @@ sandboxed and reproducible experiments, and human review at every consequential 
 | **Experiments** | Human-approved runs in a Docker sandbox (no network, read-only root, dropped capabilities, resource caps), manifests with hashes, reproduction check, human review, knowledge graph |
 | **API** | FastAPI service: accounts and sessions, projects, runs, document upload and search, approvals, experiments, reports, model registry, training jobs, local inference, Server-Sent Events |
 
+## Screenshots
+
+Captured from the running application (`frontend/e2e/shots.spec.ts`, Edge, 1440 px wide, light theme) against a real backend, with a **small seeded demo library**
+(two short synthetic documents on polymer electrolytes). They show the interface, not research results.
+
+| | |
+|---|---|
+| ![Overview](docs/screenshots/overview.png) **Overview** | ![Agent command center](docs/screenshots/agents.png) **Agent command center** (task graph of one run) |
+| ![Evidence verification](docs/screenshots/evidence.png) **Evidence verification** (lexical statuses, supporting passages) | ![Literature library](docs/screenshots/library.png) **Literature library** |
+| ![Report](docs/screenshots/report.png) **Report** | ![Model Lab](docs/screenshots/model-lab.png) **Model Lab** (experimental) |
+
 ## Architecture
 
 ```mermaid
@@ -183,6 +194,15 @@ docker compose logs -f api
 * The default compose file is the single-host SQLite setup (no Redis anywhere). **The Docker socket is deliberately not
   mounted**, so inside the container experiments are refused unless you set the non-isolating development fallback.
 * CI builds and runs the image; it has not been built on the author's machine (no Docker there).
+
+### Research quality (P11)
+
+Additions on top of P1-P10, none of which replaces an earlier behaviour: an **opt-in advanced search ranker** (`?ranker=advanced`, explained per hit), **richer
+evidence records** and three new contradiction rules, a **corpus-scoped gap analysis** (`GET /projects/{id}/gaps`; observed vs hypothesis, every gap linked to
+passages, never a novelty claim), **citation integrity** and an **evidence-coverage summary** on every report, and a **per-run reliability view**
+(`GET /runs/{id}/reliability`). The web app shows all of them. Measured on an invented corpus, so treat the numbers as an upper bound:
+see [docs/EVALUATION_P11.md](docs/EVALUATION_P11.md) and [docs/P11_REPORT.md](docs/P11_REPORT.md). Verification is still lexical (it misses paraphrases and can
+return a false SUPPORTED); the experimental custom Transformer is not research-capable and nothing in P11 relies on it.
 
 ### Production (P10)
 

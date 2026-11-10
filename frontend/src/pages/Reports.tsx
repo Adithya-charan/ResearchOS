@@ -7,7 +7,9 @@ import { Q, RequireProject } from "../components/common";
 import { Badge, Button, Card, CardTitle, ClaimBadge, EmptyState, Mono, Notice, PageHeader, Select, Tabs, useToast } from "../components/ui";
 import { api, saveFile } from "../lib/api";
 import { CLAIM_LABEL, fmtDate } from "../lib/format";
-import type { ReportBlock, ReportSummary, ReportVersion, StructuredReport } from "../lib/types";
+import { QualityPanel } from "../components/QualityPanel";
+import { ISSUE_LABEL, blockKey, issuesByBlock, unsupportedBlocks } from "../lib/quality";
+import type { CitationIssue, ReportBlock, ReportSummary, ReportVersion, StructuredReport } from "../lib/types";
 
 type Cit = ReportBlock["citations"][number];
 export const citationLabel = (c: Cit) => `${c.document_id}${c.passage_id ? ` · ${c.passage_id}` : ""}${c.page_number != null ? ` · p.${c.page_number}` : ""}`;
@@ -24,11 +26,16 @@ function CitationDetail({ c }: { c: Cit }) {
   );
 }
 
-function Block({ b, sel, setSel, id }: { b: ReportBlock; sel: string | null; setSel: (k: string | null) => void; id: string }) {
+const EPISTEMIC_TAG: Record<string, string> = { evidence: "evidence", fact: "fact", inference: "inference (untested)", absence: "nothing found" };
+
+function Block({ b, sel, setSel, id, issues = [], unsupported = false }: { b: ReportBlock; sel: string | null; setSel: (k: string | null) => void; id: string; issues?: CitationIssue[]; unsupported?: boolean }) {
   return (
     <div className="mb-4">
       <p className="!mb-1">{b.text}</p>
       <p className="flex flex-wrap items-center gap-1.5 !font-sans text-xs">
+        {b.epistemic && <span className="rounded border border-line px-1 text-[10.5px] text-muted" title="What kind of statement this is">{EPISTEMIC_TAG[b.epistemic] ?? b.epistemic}</span>}
+        {issues.length > 0 && <span title={issues.map((i) => i.detail).join("; ")}><Badge tone="bad">citation issue: {issues.map((i) => ISSUE_LABEL[i.issue] ?? i.issue).join(", ")}</Badge></span>}
+        {unsupported && <Badge tone="warn" title="Shown as supported, but no valid citation backs it">no valid citation</Badge>}
         {b.status && <span title={CLAIM_LABEL[b.status]}><ClaimBadge status={b.status} /></span>}
         {b.strength && <span className="text-muted">strength: {b.strength}</span>}
         {b.citations.map((c, i) => { const key = `${id}:${i}`; return (
@@ -59,6 +66,8 @@ function Viewer({ id }: { id: string }) {
   });
   const copy = async () => { try { await navigator.clipboard.writeText(await api.text(`/reports/${id}/structured.md`)); toast("ok", "Markdown copied to the clipboard."); } catch { toast("bad", "Copy failed: the browser blocked clipboard access."); } };
   const sections = useMemo(() => s.data?.structured.sections ?? [], [s.data]);
+  const blockIssues = useMemo(() => issuesByBlock(s.data?.citation_integrity), [s.data]);
+  const unsupported = useMemo(() => unsupportedBlocks(s.data?.citation_integrity), [s.data]);
   useEffect(() => {
     if (tab !== "sections" || !sections.length || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver((es) => { const v = es.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]; if (v) setActive(v.target.id); }, { rootMargin: "0px 0px -70% 0px" });
@@ -89,11 +98,12 @@ function Viewer({ id }: { id: string }) {
               <div className="no-print mb-3 lg:hidden"><label htmlFor="jump" className="sr-only">Jump to section</label><Select id="jump" onChange={(e) => { document.getElementById(e.target.value)?.scrollIntoView(); }} defaultValue=""><option value="" disabled>Jump to section…</option>{sections.map((x) => <option key={x.id} value={`sec-${x.id}`}>{x.number}. {x.title}</option>)}</Select></div>
               <Card className="mb-4 p-3"><div className="flex flex-wrap items-center gap-2 text-sm">{Object.entries(r.structured.claim_counts).map(([k, v]) => <span key={k} className="flex items-center gap-1"><ClaimBadge status={k} /><b className="tabular-nums">{v}</b></span>)}<span className="text-xs text-muted">· {r.structured.verification_rounds} verification round(s) · {r.structured.unresolved_claims.length} unresolved</span></div>
                 {r.structured.rules && <p className="mt-1.5 text-xs text-muted">{r.structured.rules}</p>}</Card>
+              <QualityPanel quality={r.structured.quality} integrity={r.citation_integrity} />
               <article className="reading" style={{ ["--read-size" as string]: `${size}rem` }}>
                 {sections.map((sec, si) => (
                   <section key={sec.id} id={`sec-${sec.id}`} aria-labelledby={`h-${sec.id}`} className="scroll-mt-4">
                     <h2 id={`h-${sec.id}`}>{sec.number}. {sec.title}</h2>
-                    {sec.blocks.length === 0 ? <p className="!font-sans text-sm text-muted">This section has no content for this run. Nothing has been filled in.</p> : sec.blocks.map((b, bi) => <Block key={bi} b={b} id={`${si}-${bi}`} sel={sel} setSel={setSel} />)}
+                    {sec.blocks.length === 0 ? <p className="!font-sans text-sm text-muted">This section has no content for this run. Nothing has been filled in.</p> : sec.blocks.map((b, bi) => <Block key={bi} b={b} id={`${si}-${bi}`} sel={sel} setSel={setSel} issues={blockIssues.get(blockKey(sec.number, bi))} unsupported={unsupported.has(blockKey(sec.number, bi))} />)}
                   </section>))}
               </article>
             </div>

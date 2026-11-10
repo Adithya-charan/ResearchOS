@@ -1,0 +1,40 @@
+{
+  "papers": [
+    {
+      "paper": "electrolytes",
+      "pages_pymupdf": 3,
+      "pages_pdfminer": 3
+    },
+    {
+      "paper": "sparse",
+      "pages_pymupdf": 3,
+      "pages_pdfminer": 3
+    },
+    {
+      "paper": "coral",
+      "pages_pymupdf": 2,
+      "pages_pdfminer": 2
+    },
+    {
+      "paper": "federated",
+      "pages_pymupdf": 2,
+      "pages_pdfminer": 2
+    },
+    {
+      "paper": "perovskite",
+      "pages_pymupdf": 3,
+      "pages_pdfminer": 3
+    }
+  ],
+  "page_text_similarity": {
+    "pages": 13,
+    "mean": 0.9492,
+    "min": 0.9111
+  },
+  "headings": {
+    "found_by_pdfminer": 22,
+    "expected": 22,
+    "distinguishable_by_font_size": 22
+  },
+  "scope": "synthetic fixture PDFs made by PyMuPDF; feasibility only, not validation on real papers"
+}

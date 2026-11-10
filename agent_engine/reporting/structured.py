@@ -28,9 +28,55 @@ def _cite(src: dict | None, quote: str = "") -> dict:
             **({"quote": quote} if quote else {})}
 
 
+#: what a block is, in words a reader can act on (P11.5). Derived from `kind`, never from the text.
+EPISTEMIC = {
+    "claim": "evidence",         # a statement taken from a stored passage; carries a verification status and a citation
+    "derived": "fact",           # computed from run data (counts, metadata, labels); not a claim about the world
+    "proposal": "inference",     # a gap, hypothesis or plan drafted by the system; untested, never verified
+    "note": "absence",           # nothing to report / not available; states what is missing
+}
+EPISTEMIC_MEANING = {
+    "evidence": "quoted from a stored passage with a verification status (lexical, not proof)",
+    "fact": "computed from the run's own data (counts, metadata, labels)",
+    "inference": "drafted by the system and untested; never presented as a finding",
+    "absence": "records that something was not found or not produced",
+}
+
+
 def _block(text: str, *, kind: str = "note", citations: list[dict] | None = None, claim_key: str | None = None,
            status: str | None = None, **extra) -> dict:
-    return {"kind": kind, "text": text, "citations": citations or [], "claim_key": claim_key, "status": status, **extra}
+    return {"kind": kind, "text": text, "citations": citations or [], "claim_key": claim_key, "status": status,
+            "epistemic": EPISTEMIC.get(kind, "absence"), **extra}
+
+
+def quality_summary(sections: list[dict], counts: dict, unresolved: list[dict]) -> dict:
+    """Evidence coverage and the mix of statement types (P11.5). Pure arithmetic over the report's own blocks; it adds no new claims."""
+    mix = dict.fromkeys(EPISTEMIC_MEANING, 0)
+    cited_docs: set[str] = set()
+    cited_blocks = 0
+    for sec in sections:
+        for b in sec["blocks"]:
+            mix[b.get("epistemic") or EPISTEMIC.get(b["kind"], "absence")] += 1
+            cs = [c for c in b["citations"] if c.get("passage_id")]
+            cited_blocks += bool(cs)
+            cited_docs.update(c["document_id"] for c in cs if c.get("document_id"))
+    total = sum(counts.get(s, 0) for s in STATUSES)
+    backed = counts.get("SUPPORTED", 0) + counts.get("PARTIALLY_SUPPORTED", 0)
+    by_title = {s["title"]: s["blocks"] for s in sections}
+    real = lambda blocks: sum(b["kind"] != "note" for b in blocks)  # noqa: E731 - "nothing found" notes are not items
+    return {
+        "statement_mix": mix, "statement_meaning": EPISTEMIC_MEANING,
+        "evidence_coverage": {"claims": total, "by_status": {s: counts.get(s, 0) for s in STATUSES}, "supported_or_partial": backed,
+                              "fraction_supported_or_partial": round(backed / total, 4) if total else None,
+                              "claims_not_fully_supported": len(unresolved), "documents_cited": len(cited_docs), "blocks_with_citation": cited_blocks},
+        "contradictions": counts.get("CONTRADICTED", 0) + real(by_title.get("Contradicting evidence", [])),
+        "limitations_listed": real(by_title.get("Limitations", [])),
+        "recommendations_listed": real(by_title.get("Future work", [])),
+        "assumptions": "The system records no explicit assumptions; where a step depends on one (for example that two phrasings name the same "
+                       "thing) it appears as an inference or in the limitations, not as a finding.",
+        "reading_note": "Coverage counts claims the agents extracted from the documents. It is not a measure of how much of the literature "
+                        "was read, and a high supported fraction says only that stored passages use similar words.",
+    }
 
 
 def build_structured(report: dict, outputs: list[AgentOutput]) -> dict:
@@ -203,12 +249,19 @@ def build_structured(report: dict, outputs: list[AgentOutput]) -> dict:
     section(17, refs or [_block("No document is cited.", kind="note")])
 
     return {"title": sections[0]["blocks"][0]["text"], "sections": sections, "claim_counts": counts, "verification_rounds": merged["rounds"],
-            "unresolved_claims": unresolved,
+            "unresolved_claims": unresolved, "quality": quality_summary(sections, counts, unresolved),
             "rules": "Every block is a quotation with its citation, a template filled from run data, or a labelled proposal."}
 
 
 def render_structured_markdown(s: dict) -> str:
     out = [f"# {s['title']}", ""]
+    q = s.get("quality")
+    if q:
+        cov = q["evidence_coverage"]
+        out += [f"> Evidence coverage: {cov['supported_or_partial']} of {cov['claims']} claim(s) supported or partially supported, "
+                f"{cov['claims_not_fully_supported']} not fully supported, {q['contradictions']} contradiction(s), "
+                f"{cov['documents_cited']} document(s) cited. Statements: "
+                + ", ".join(f"{n} {k}" for k, n in q["statement_mix"].items()) + ". " + q["reading_note"], ""]
     for sec in s["sections"][1:]:
         out += [f"## {sec['number']}. {sec['title']}", ""]
         for b in sec["blocks"]:

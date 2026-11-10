@@ -9,6 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy import select
 
+from agent_engine.reliability import run_reliability
 from agent_engine.reporting import render_structured_markdown, report_from_store
 from api import claims_service
 from api.db import utcnow
@@ -20,6 +21,7 @@ from api.routes.projects import owned_project
 from api.routes.runs import owned_run
 from api.runtime import NoCorpus
 from api.schemas import ReportPatch
+from research.evidence.citations import check_report_citations
 
 router = APIRouter(tags=["reports"])
 MAX_ANNOTATION = 1000
@@ -97,6 +99,7 @@ def generate_report(run_id: str, request: Request, auth: CurrentAuth, db: DB):
                 c["source_text"] = " ".join(p.text.split()) if p else None
                 c["resolvable"] = p is not None
     content["generated_from"] = {"run_id": run.id, "question": run.question, "workflow": run.workflow}
+    content["execution"] = run_reliability(rt.store, run.engine_run_id)  # snapshot: did every agent succeed first time, or were there retries?
     r = Report(project_id=run.project_id, owner_id=auth.user.id, run_id=run.id, content=content,
                content_sha256=content_hash(content), editable=copy.deepcopy(EMPTY_EDITABLE))
     db.add(r)
@@ -135,11 +138,18 @@ def _structured(r: Report) -> dict:
 
 
 @router.get("/reports/{report_id}/structured")
-def read_structured(report_id: str, auth: CurrentAuth, db: DB):
-    """The 18-section view of the immutable generated content (every block cites a stored passage or is labelled UNVERIFIED)."""
+def read_structured(report_id: str, request: Request, auth: CurrentAuth, db: DB):
+    """The 18-section view of the immutable generated content (every block cites a stored passage or is labelled UNVERIFIED).
+    `citation_integrity` is recomputed on every read against the corpus as it is now, so a deleted document or changed passage shows up."""
     r = owned_report(db, report_id, auth.user.id)
-    return {"report_id": r.id, "version": r.version, "content_sha256": r.content_sha256, "structured": _structured(r),
-            "verification": r.content.get("verification", {}).get("history", [])}
+    structured = _structured(r)
+    try:
+        index = request.app.state.runtime.index_for(r.project_id)
+    except NoCorpus:
+        index = None  # no corpus left: every citation is reported as unresolvable rather than silently passing
+    integrity = check_report_citations(structured, (lambda pid: index.get(pid)) if index is not None else (lambda pid: None))
+    return {"report_id": r.id, "version": r.version, "content_sha256": r.content_sha256, "structured": structured,
+            "verification": r.content.get("verification", {}).get("history", []), "citation_integrity": integrity}
 
 
 @router.get("/reports/{report_id}/structured.md")

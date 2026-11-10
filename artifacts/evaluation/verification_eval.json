@@ -180,13 +180,13 @@
         "category": "contradicted",
         "text": "Capacity fade after twelve months was 40 percent at 45 degrees",
         "expected": "CONTRADICTED",
-        "actual": "PARTIALLY_SUPPORTED",
-        "correct": false,
+        "actual": "CONTRADICTED",
+        "correct": true,
         "known_limitation": true,
         "conflicting": false,
-        "strength": "weak",
+        "strength": "moderate",
         "explanation": [
-          "only indirect evidence: passages cover part of the claim or its numbers do not match",
+          "a stored passage directly contradicts the claim and nothing directly supports it",
           "3 retrieved passage(s) shared too little with the claim to count as evidence of any kind"
         ],
         "note": "the figure 45 also occurs in the document sentence (for another quantity); numbers are not paired with their units, so the system is expected to say PARTIALLY_SUPPORTED, not CONTRADICTED"
@@ -211,13 +211,13 @@
         "category": "contradicted",
         "text": "Massive colonies bleached earlier than branching colonies",
         "expected": "CONTRADICTED",
-        "actual": "SUPPORTED",
-        "correct": false,
+        "actual": "CONTRADICTED",
+        "correct": true,
         "known_limitation": true,
         "conflicting": false,
         "strength": "moderate",
         "explanation": [
-          "at least one stored passage states the claim in nearly the same words, and no passage contradicts it"
+          "a stored passage directly contradicts the claim and nothing directly supports it"
         ],
         "note": "the roles are swapped; word overlap is identical, so the system is expected to call it SUPPORTED"
       },
@@ -345,9 +345,9 @@
         "UNVERIFIED": 0
       },
       "CONTRADICTED": {
-        "SUPPORTED": 1,
-        "PARTIALLY_SUPPORTED": 1,
-        "CONTRADICTED": 4,
+        "SUPPORTED": 0,
+        "PARTIALLY_SUPPORTED": 0,
+        "CONTRADICTED": 6,
         "INSUFFICIENT_EVIDENCE": 0,
         "UNVERIFIED": 0
       },
@@ -373,8 +373,8 @@
     },
     "accuracy_on_known_limitations": {
       "claims": 3,
-      "correct": 0,
-      "accuracy": 0.0
+      "correct": 2,
+      "accuracy": 0.6667
     },
     "accuracy_by_expected_status": {
       "SUPPORTED": {
@@ -405,8 +405,8 @@
     },
     "accuracy_all": {
       "claims": 21,
-      "correct": 18,
-      "accuracy": 0.8571
+      "correct": 20,
+      "accuracy": 0.9524
     },
     "novelty": [
       {

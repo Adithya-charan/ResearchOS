@@ -4,6 +4,7 @@ from fastapi import Depends, APIRouter, HTTPException, Query, Request
 from sqlalchemy import func, select
 
 from agent_engine.errors import RunStateError
+from agent_engine.reliability import run_reliability
 from agent_engine.reporting import report_from_store
 from api.ratelimit import rate_limit
 from api.deps import DB, CurrentAuth, audit
@@ -158,6 +159,13 @@ def list_executions(run_id: str, request: Request, auth: CurrentAuth, db: DB):
     """One record per task attempt: status, duration, process CPU seconds (process-wide, so approximate when tasks overlap)."""
     r = owned_run(db, run_id, auth.user.id)
     return request.app.state.runtime.store.list_executions(r.engine_run_id)
+
+
+@router.get("/runs/{run_id}/reliability")
+def run_reliability_view(run_id: str, request: Request, auth: CurrentAuth, db: DB):
+    """What happened to each agent: attempts, retries, timeouts, failures with root causes, skipped dependents and partial results."""
+    r = owned_run(db, run_id, auth.user.id)
+    return run_reliability(request.app.state.runtime.store, r.engine_run_id)
 
 
 @router.get("/runs/{run_id}/events")

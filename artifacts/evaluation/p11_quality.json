@@ -1,0 +1,828 @@
+{
+ "generated_by": "scripts/eval_p11.py",
+ "synthetic": true,
+ "corpus": "datasets/p11_eval (invented, CC0-1.0)",
+ "limitations": [
+  "INVENTED corpus and author-written labels: this checks that the rules behave as designed, not that they work on real literature.",
+  "The corpus is small (18 documents, 4 topics); precision and recall on it are far more favourable than on a real library.",
+  "Expected statuses were assigned by meaning before the system ran, but the same author wrote the claims and the documents; shared wording makes lexical matching easier than it will be in practice.",
+  "Paraphrase cases are included because the verifier is lexical and is expected to miss some; those misses are reported, not hidden.",
+  "Citation defects are injected programmatically, so detection rates show the checker finds those defect types, not that real-world citation errors are limited to them."
+ ],
+ "retrieval": {
+  "queries": 45,
+  "baseline_bm25": {
+   "recall@3": 0.9537,
+   "recall@5": 0.9756,
+   "precision@1": 0.9756,
+   "precision@3": 0.4797,
+   "mrr": 0.9878,
+   "duplicate_pairs_in_top5": 9
+  },
+  "recommended_opt_in": {
+   "recall@3": 0.9659,
+   "recall@5": 1.0,
+   "precision@1": 0.9756,
+   "precision@3": 0.4878,
+   "mrr": 0.9878,
+   "duplicate_pairs_in_top5": 0
+  },
+  "full_tables": "artifacts/evaluation/retrieval_p11.json"
+ },
+ "evidence": {
+  "cases": 26,
+  "status_accuracy": 0.6538,
+  "by_kind": {
+   "exact": {
+    "cases": 8,
+    "correct": 8,
+    "accuracy": 1.0
+   },
+   "paraphrase": {
+    "cases": 5,
+    "correct": 0,
+    "accuracy": 0.0
+   },
+   "contradictory": {
+    "cases": 6,
+    "correct": 4,
+    "accuracy": 0.6667
+   },
+   "insufficient": {
+    "cases": 5,
+    "correct": 4,
+    "accuracy": 0.8
+   },
+   "multi_document": {
+    "cases": 2,
+    "correct": 1,
+    "accuracy": 0.5
+   }
+  },
+  "evidence_support_precision": 0.7778,
+  "evidence_support_recall": 0.5833,
+  "unsupported_claim_rate": 0.2222,
+  "unsupported_claim_rate_definition": "of claims labelled SUPPORTED, the share whose expected status is not SUPPORTED (a false 'supported')",
+  "contradiction_detection": {
+   "precision": 1.0,
+   "recall": 0.6667,
+   "predicted": 4,
+   "expected": 6
+  },
+  "insufficient_correct": 0.8,
+  "conflicting_sources_surfaced": 0.5,
+  "wrong": [
+   {
+    "id": "p01",
+    "kind": "paraphrase",
+    "expected": "SUPPORTED",
+    "predicted": "PARTIALLY_SUPPORTED"
+   },
+   {
+    "id": "p02",
+    "kind": "paraphrase",
+    "expected": "SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE"
+   },
+   {
+    "id": "p03",
+    "kind": "paraphrase",
+    "expected": "SUPPORTED",
+    "predicted": "PARTIALLY_SUPPORTED"
+   },
+   {
+    "id": "p04",
+    "kind": "paraphrase",
+    "expected": "SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE"
+   },
+   {
+    "id": "p05",
+    "kind": "paraphrase",
+    "expected": "SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE"
+   },
+   {
+    "id": "c04",
+    "kind": "contradictory",
+    "expected": "CONTRADICTED",
+    "predicted": "SUPPORTED"
+   },
+   {
+    "id": "c06",
+    "kind": "contradictory",
+    "expected": "CONTRADICTED",
+    "predicted": "SUPPORTED"
+   },
+   {
+    "id": "i04",
+    "kind": "insufficient",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "predicted": "PARTIALLY_SUPPORTED"
+   },
+   {
+    "id": "m02",
+    "kind": "multi_document",
+    "expected": "PARTIALLY_SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE"
+   }
+  ],
+  "rows": [
+   {
+    "id": "x01",
+    "kind": "exact",
+    "claim": "Silicon anode volume expansion reached 18 percent after two hundred cycles",
+    "expected": "SUPPORTED",
+    "predicted": "SUPPORTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "bat1",
+     "bat2",
+     "dup1"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "states the claim in nearly the same words",
+     "covers only part of the claim"
+    ]
+   },
+   {
+    "id": "x02",
+    "kind": "exact",
+    "claim": "The carbon coating halved electrode swelling, from 18 percent to 9 percent after two hundred cycles",
+    "expected": "SUPPORTED",
+    "predicted": "SUPPORTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "bat1",
+     "bat2",
+     "bat5",
+     "dup1"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "overlaps in topic only",
+     "covers only part of the claim"
+    ]
+   },
+   {
+    "id": "x03",
+    "kind": "exact",
+    "claim": "Capacity fade averaged 0.5 percent per month at 25 degrees and 3 percent per month at 45 degrees",
+    "expected": "SUPPORTED",
+    "predicted": "SUPPORTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "bat3"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "x04",
+    "kind": "exact",
+    "claim": "Bleaching became widespread once degree heating weeks exceeded four",
+    "expected": "SUPPORTED",
+    "predicted": "SUPPORTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral1"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "x05",
+    "kind": "exact",
+    "claim": "Biochar increased maize yield by fourteen percent compared with untreated plots",
+    "expected": "PARTIALLY_SUPPORTED",
+    "predicted": "PARTIALLY_SUPPORTED",
+    "correct": true,
+    "conflicting": true,
+    "evidence_documents": [
+     "soil1",
+     "soil2",
+     "soil4"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "the sentence reports the opposite direction of change on the same subject",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "x06",
+    "kind": "exact",
+    "claim": "Top-k sparsification cut the bytes per round by ninety percent while accuracy dropped by one point",
+    "expected": "SUPPORTED",
+    "predicted": "SUPPORTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "fl2",
+     "fl4"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "x07",
+    "kind": "exact",
+    "claim": "Larval settlement was highest on rubble, with twice as many recruits as on bare rock",
+    "expected": "SUPPORTED",
+    "predicted": "SUPPORTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral2"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "x08",
+    "kind": "exact",
+    "claim": "Mycorrhizal inoculation increased phosphorus uptake by twenty percent",
+    "expected": "SUPPORTED",
+    "predicted": "SUPPORTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "soil1",
+     "soil3",
+     "soil4"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "overlaps in topic only",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "p01",
+    "kind": "paraphrase",
+    "claim": "Coral larvae settled most on rubble compared with bare rock",
+    "expected": "SUPPORTED",
+    "predicted": "PARTIALLY_SUPPORTED",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral2"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "covers only part of the claim",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "p02",
+    "kind": "paraphrase",
+    "claim": "Heat tolerant algae helped bleached corals regain their colour in half the time",
+    "expected": "SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral1",
+     "coral4"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "overlaps in topic only",
+     "overlaps in topic only",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "p03",
+    "kind": "paraphrase",
+    "claim": "Adding noise for privacy lowered model accuracy by five points when epsilon was one",
+    "expected": "SUPPORTED",
+    "predicted": "PARTIALLY_SUPPORTED",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [
+     "fl2",
+     "fl3",
+     "fl4"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "covers only part of the claim",
+     "overlaps in topic only",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "p04",
+    "kind": "paraphrase",
+    "claim": "Storing cells hot made them lose capacity much faster than storing them at room temperature",
+    "expected": "SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [],
+    "expected_documents_found": false,
+    "reasons": []
+   },
+   {
+    "id": "p05",
+    "kind": "paraphrase",
+    "claim": "Silicon electrodes grew in thickness by roughly a fifth after repeated charging",
+    "expected": "SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [
+     "bat2"
+    ],
+    "expected_documents_found": false,
+    "reasons": [
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "c01",
+    "kind": "contradictory",
+    "claim": "Uncoated cells expanded less than cells with a carbon coating",
+    "expected": "CONTRADICTED",
+    "predicted": "CONTRADICTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "bat1",
+     "bat2"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "the sentence reports the opposite direction of change on the same subject",
+     "overlaps in topic only",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "c02",
+    "kind": "contradictory",
+    "claim": "Reefs with variable temperature bleached more severely",
+    "expected": "CONTRADICTED",
+    "predicted": "CONTRADICTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral1"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "the sentence reports the opposite direction of change on the same subject",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "c03",
+    "kind": "contradictory",
+    "claim": "Sparse updates increased the upload volume of each client",
+    "expected": "CONTRADICTED",
+    "predicted": "CONTRADICTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "fl1",
+     "fl4"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "the sentence reports the opposite direction of change on the same subject",
+     "the sentence reports the opposite direction of change on the same subject",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "c04",
+    "kind": "contradictory",
+    "claim": "Larval settlement was highest on sand",
+    "expected": "CONTRADICTED",
+    "predicted": "SUPPORTED",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral2"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "c05",
+    "kind": "contradictory",
+    "claim": "Skeleton density increased at the lowest aragonite saturation",
+    "expected": "CONTRADICTED",
+    "predicted": "CONTRADICTED",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral3"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "the sentence reports the opposite direction of change on the same subject",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "c06",
+    "kind": "contradictory",
+    "claim": "Client drift decreased as the number of local epochs grew",
+    "expected": "CONTRADICTED",
+    "predicted": "SUPPORTED",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [
+     "fl1"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "covers only part of the claim"
+    ]
+   },
+   {
+    "id": "i01",
+    "kind": "insufficient",
+    "claim": "Quantum error correction raises the surface code threshold",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [],
+    "expected_documents_found": null,
+    "reasons": []
+   },
+   {
+    "id": "i02",
+    "kind": "insufficient",
+    "claim": "Mortality after hip replacement surgery was lower in older patients",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [
+     "coral4"
+    ],
+    "expected_documents_found": null,
+    "reasons": [
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "i03",
+    "kind": "insufficient",
+    "claim": "Graphene membranes reduce the energy needed for desalination",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [],
+    "expected_documents_found": null,
+    "reasons": []
+   },
+   {
+    "id": "i04",
+    "kind": "insufficient",
+    "claim": "Biochar improved maize yield in clay soils",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "predicted": "PARTIALLY_SUPPORTED",
+    "correct": false,
+    "conflicting": true,
+    "evidence_documents": [
+     "soil1",
+     "soil2"
+    ],
+    "expected_documents_found": null,
+    "reasons": [
+     "covers only part of the claim",
+     "the sentence reports the opposite direction of change on the same subject",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "i05",
+    "kind": "insufficient",
+    "claim": "Pruning attention heads preserved translation quality",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": true,
+    "conflicting": false,
+    "evidence_documents": [],
+    "expected_documents_found": null,
+    "reasons": []
+   },
+   {
+    "id": "m01",
+    "kind": "multi_document",
+    "claim": "The additive improved capacity retention after three hundred fast charge cycles",
+    "expected": "PARTIALLY_SUPPORTED",
+    "predicted": "PARTIALLY_SUPPORTED",
+    "correct": true,
+    "conflicting": true,
+    "evidence_documents": [
+     "bat2",
+     "bat4",
+     "bat5"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "states the claim in nearly the same words",
+     "one side reports no effect or difference on the subject while the other reports a change",
+     "overlaps in topic only"
+    ]
+   },
+   {
+    "id": "m02",
+    "kind": "multi_document",
+    "claim": "Biochar raised maize yield in loam soil but lowered it in sandy soil",
+    "expected": "PARTIALLY_SUPPORTED",
+    "predicted": "INSUFFICIENT_EVIDENCE",
+    "correct": false,
+    "conflicting": false,
+    "evidence_documents": [
+     "soil1",
+     "soil2"
+    ],
+    "expected_documents_found": true,
+    "reasons": [
+     "overlaps in topic only",
+     "overlaps in topic only",
+     "overlaps in topic only"
+    ]
+   }
+  ]
+ },
+ "citations": {
+  "by_case": {
+   "valid": {
+    "citations": 44,
+    "false_alarm_rate": 0.0
+   },
+   "fabricated_passage_id": {
+    "citations": 44,
+    "detection_rate": 1.0,
+    "flagged_only_that_issue": 1.0
+   },
+   "missing_passage_id": {
+    "citations": 44,
+    "detection_rate": 1.0,
+    "flagged_only_that_issue": 1.0
+   },
+   "wrong_document": {
+    "citations": 44,
+    "detection_rate": 1.0,
+    "flagged_only_that_issue": 1.0
+   },
+   "wrong_page": {
+    "citations": 44,
+    "detection_rate": 1.0,
+    "flagged_only_that_issue": 1.0
+   },
+   "altered_quote": {
+    "citations": 44,
+    "detection_rate": 1.0,
+    "flagged_only_that_issue": 1.0
+   },
+   "changed_source": {
+    "citations": 44,
+    "detection_rate": 1.0,
+    "flagged_only_that_issue": 1.0
+   }
+  },
+  "citation_correctness": {
+   "valid_citations_accepted": 1.0,
+   "defective_citations_flagged": 1.0,
+   "lowest_defect_detection_rate": 1.0
+  },
+  "scope": "Checks existence, document, page, quote and source-text agreement. Whether the passage supports the claim is the verifier's job (see evidence)."
+ },
+ "gaps": {
+  "gaps": 31,
+  "counts": {
+   "observed": 27,
+   "hypothesis": 4,
+   "by_type": {
+    "single_document_theme": 8,
+    "unanswered_question": 7,
+    "methodological_limitation": 10,
+    "conflicting_findings": 2,
+    "missing_comparison": 4
+   },
+   "conflict_checks_run": 193
+  },
+  "conflict_detection": {
+   "expected_pairs": 2,
+   "reported_pairs": 2,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "stated_limitation_recall": 1.0,
+  "stated_limitations_outside_expectation": [],
+  "traceability_problems": [],
+  "every_gap_linked_to_a_passage": true,
+  "hypotheses_labelled": true,
+  "note": "Single-document themes and missing comparisons have no author ground truth; they are listed, not scored."
+ },
+ "end_to_end": {
+  "runs": [
+   {
+    "topic": "batteries",
+    "documents": 5,
+    "run_status": "completed",
+    "seconds": 0.53,
+    "reliability": {
+     "degraded": false,
+     "tasks": 16,
+     "failures": [],
+     "retried_tasks": []
+    },
+    "attempts": 16,
+    "report": {
+     "sections": 18,
+     "all_18_titles_in_order": true,
+     "empty_sections": [],
+     "blocks": 119,
+     "blocks_labelled": 119,
+     "evidence_coverage": {
+      "blocks_with_citation": 33,
+      "by_status": {
+       "CONTRADICTED": 0,
+       "INSUFFICIENT_EVIDENCE": 0,
+       "PARTIALLY_SUPPORTED": 0,
+       "SUPPORTED": 5,
+       "UNVERIFIED": 12
+      },
+      "claims": 17,
+      "claims_not_fully_supported": 0,
+      "documents_cited": 3,
+      "fraction_supported_or_partial": 0.2941,
+      "supported_or_partial": 5
+     },
+     "statement_mix": {
+      "absence": 1,
+      "evidence": 20,
+      "fact": 76,
+      "inference": 22
+     },
+     "citation_integrity": {
+      "citations_checked": 35,
+      "citations_valid": 35,
+      "integrity_rate": 1.0,
+      "claim_blocks": 20,
+      "claim_blocks_with_a_valid_citation": 20,
+      "ok": true,
+      "unsupported_claims": 0
+     }
+    }
+   },
+   {
+    "topic": "soil",
+    "documents": 4,
+    "run_status": "completed",
+    "seconds": 0.53,
+    "reliability": {
+     "degraded": false,
+     "tasks": 18,
+     "failures": [],
+     "retried_tasks": []
+    },
+    "attempts": 18,
+    "report": {
+     "sections": 18,
+     "all_18_titles_in_order": true,
+     "empty_sections": [],
+     "blocks": 123,
+     "blocks_labelled": 123,
+     "evidence_coverage": {
+      "blocks_with_citation": 43,
+      "by_status": {
+       "CONTRADICTED": 0,
+       "INSUFFICIENT_EVIDENCE": 0,
+       "PARTIALLY_SUPPORTED": 2,
+       "SUPPORTED": 6,
+       "UNVERIFIED": 8
+      },
+      "claims": 16,
+      "claims_not_fully_supported": 2,
+      "documents_cited": 3,
+      "fraction_supported_or_partial": 0.5,
+      "supported_or_partial": 8
+     },
+     "statement_mix": {
+      "absence": 0,
+      "evidence": 31,
+      "fact": 76,
+      "inference": 16
+     },
+     "citation_integrity": {
+      "citations_checked": 43,
+      "citations_valid": 43,
+      "integrity_rate": 1.0,
+      "claim_blocks": 31,
+      "claim_blocks_with_a_valid_citation": 31,
+      "ok": true,
+      "unsupported_claims": 0
+     }
+    }
+   },
+   {
+    "topic": "federated",
+    "documents": 4,
+    "run_status": "completed",
+    "seconds": 0.49,
+    "reliability": {
+     "degraded": false,
+     "tasks": 15,
+     "failures": [],
+     "retried_tasks": []
+    },
+    "attempts": 15,
+    "report": {
+     "sections": 18,
+     "all_18_titles_in_order": true,
+     "empty_sections": [],
+     "blocks": 45,
+     "blocks_labelled": 45,
+     "evidence_coverage": {
+      "blocks_with_citation": 0,
+      "by_status": {
+       "CONTRADICTED": 0,
+       "INSUFFICIENT_EVIDENCE": 0,
+       "PARTIALLY_SUPPORTED": 0,
+       "SUPPORTED": 0,
+       "UNVERIFIED": 0
+      },
+      "claims": 0,
+      "claims_not_fully_supported": 0,
+      "documents_cited": 0,
+      "fraction_supported_or_partial": null,
+      "supported_or_partial": 0
+     },
+     "statement_mix": {
+      "absence": 10,
+      "evidence": 0,
+      "fact": 35,
+      "inference": 0
+     },
+     "citation_integrity": {
+      "citations_checked": 0,
+      "citations_valid": 0,
+      "integrity_rate": null,
+      "claim_blocks": 0,
+      "claim_blocks_with_a_valid_citation": 0,
+      "ok": true,
+      "unsupported_claims": 0
+     }
+    }
+   }
+  ],
+  "runs_started": 3,
+  "runs_completed": 3,
+  "execution_reliability": {
+   "completion_rate": 1.0,
+   "runs_with_retries": 0,
+   "runs_with_failures": 0,
+   "note": "3 runs only, one per topic; this shows the scripted pipeline completes on clean input, not a failure-rate estimate."
+  },
+  "report_completeness": {
+   "reports": 3,
+   "all_18_sections_in_order": 3,
+   "with_empty_sections": 0,
+   "blocks_labelled": "287/287",
+   "reports_with_citations": 2,
+   "reports_without_citations": [
+    "federated"
+   ],
+   "mean_citation_integrity_where_cited": 1.0,
+   "note": "A report with no claims (the run found insufficient evidence) has no citation rate; it is listed, not counted as perfect or as zero."
+  }
+ }
+}

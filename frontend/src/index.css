@@ -10,7 +10,7 @@
 :root {
   --bg: #f7f8fa; --surface: #ffffff; --surface-2: #f1f3f5; --ink: #17202c; --muted: #5d6a7c; --line: #e4e8ed; --line-strong: #cfd6de;
   --side: #f1f3f5; --on-accent: #ffffff; --accent: #2457a6; --accent-soft: #e8eef8; --violet: #5b5ba6;
-  --ok: #26734d; --warn: #a66a19; --bad: #b54747; --hl: #fdf1c7;
+  --ok: #26734d; --warn: #9a6216; --bad: #b54747; --hl: #fdf1c7;
   --font-sans: "Inter Variable", Inter, system-ui, "Segoe UI", sans-serif;
   --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Consolas, monospace;

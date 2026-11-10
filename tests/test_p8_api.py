@@ -268,9 +268,7 @@ def test_stale_selection_degrades_to_deterministic_and_is_reported(env):
         db.commit()
     prov = c.get("/modellab/provider").json()
     assert prov["effective"]["provider"] == "deterministic" and prov["error"] and "ARCHIVED" in prov["error"]
-    from api.models import Project
-    with app.state.sessionmaker() as db:
-        pid = db.query(Project).first().id
+    pid = c.post("/projects", json={"title": "stale selection", "question": QUESTION}, headers=h).json()["id"]  # own project: no order dependence
     assert app.state.modellab.provider_for_project(pid) == (None, None)
     with app.state.sessionmaker() as db:
         row = db.get(ModelEntry, mid)

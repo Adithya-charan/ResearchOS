@@ -41,6 +41,7 @@ class Candidate:
     text: str = ""
     page_number: int | None = None
     quality: str = "ok"
+    section: str = ""                    # heading the passage sits under, when the source has one (part of its source location)
     resolved: bool | None = None
     retrieval_method: str = "attached"   # bm25_search | followup_search | source_passage | attached
     retrieval_score: float | None = None  # recorded for the audit trail; never used to decide a status
