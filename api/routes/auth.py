@@ -55,14 +55,15 @@ def register(body: RegisterIn, request: Request, response: Response, db: DB):
 def login(body: LoginIn, request: Request, response: Response, db: DB):
     s, limiter, ip = request.app.state.settings, request.app.state.limiter, client_ip(request)
     email = body.email.strip().lower()
-    key = f"login:{ip}:{email}"
-    if limiter.blocked(key, s.login_attempts, s.login_window_s):
+    key, ip_key = f"login:{ip}:{email}", f"loginip:{ip}"
+    if limiter.blocked(key, s.login_attempts, s.login_window_s) or limiter.blocked(ip_key, s.login_ip_attempts, s.login_window_s):
         audit(db, request, "login_blocked", None, detail_email=email)
         raise HTTPException(429, "too many failed attempts; try again later")
     user = db.scalar(select(User).where(User.email == email))
     ok = verify_password(user.password_hash if user else None, body.password)  # always hashes: no timing oracle for unknown emails
     if not (ok and user and user.is_active):
         limiter.hit(key, s.login_window_s)
+        limiter.hit(ip_key, s.login_window_s)
         audit(db, request, "login_failed", user.id if user else None)
         raise HTTPException(401, "invalid email or password")
     limiter.reset(key)
@@ -75,7 +76,8 @@ def logout(request: Request, response: Response, auth: CurrentAuth, db: DB):
     db.delete(auth.session)
     db.commit()
     audit(db, request, "logout", auth.user.id)
-    response.delete_cookie(request.app.state.settings.cookie_name, path="/")
+    cfg = request.app.state.settings  # same attributes as when it was set: a browser will not let a non-Secure cookie replace a Secure one
+    response.delete_cookie(cfg.cookie_name, path="/", secure=cfg.cookie_secure, httponly=True, samesite="lax")
 
 
 @router.get("/me", response_model=SessionOut)

@@ -36,6 +36,11 @@ see the repository-level `SECURITY.md`.
 | 8 | Info | The experiment sandbox's non-Docker fallback is **not isolating** | Unchanged: it is refused unless `RESEARCHOS_ALLOW_WEAK_SANDBOX=true`, which the production compose file forces to `false`. Real isolation needs the Docker sandbox, which cannot run from inside the API container (the Docker socket is deliberately not mounted), so experiment execution is **unavailable in the compose deployment** |
 | 9 | Info | The in-process rate limiter counts per API process | Documented: behind several API replicas the ceiling multiplies; add a shared limit at the reverse proxy for a hard cap |
 | 10 | Info | The repository has **no LICENSE file** | Open: see PyMuPDF below; choosing a licence is the owner's decision |
+| 11 | Medium | Login throttling was keyed per (IP, email) only, so one address could try 5 passwords against *every* account (credential stuffing) | Fixed: an added per-IP failure budget across all emails (`RESEARCHOS_LOGIN_IP_ATTEMPTS`, default 30 per window); tested in `tests/test_p10_security.py`. Trade-off: while an address is throttled its legitimate logins are refused too |
+| 12 | Low | `RateLimiter` created a key on every check and never removed stale ones, so a flood of random emails grew memory without bound | Fixed: checks no longer create keys; stale keys are swept every 60 s; tested |
+| 13 | Low | Logout cleared the session cookie without the `Secure`/`HttpOnly` attributes; browsers can ignore a non-Secure cookie that tries to replace a Secure one (server-side session was always revoked) | Fixed: the clearing cookie carries the same attributes; tested over https |
+| 14 | Low | Job reaper counted a requeue it did not perform when two reapers raced (state stayed consistent; the count was wrong; found as a flaky test) | Fixed in `api/jobs.py` with a deterministic regression test |
+| - | - | Cross-user access and malformed input were only covered per feature | Added `tests/test_p10_isolation.py`: a second signed-in user calls every id-taking operation (about 95) with the owner's ids and gets no 2xx/5xx and no leak; hostile ids/bodies on every write operation never produce a 5xx. Mutation-checked: removing the project ownership check makes it fail |
 
 ## Rate limits (server side, per signed-in user)
 

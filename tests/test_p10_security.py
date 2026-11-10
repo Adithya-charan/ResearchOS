@@ -121,3 +121,55 @@ def test_api_docs_can_be_switched_off():
     c = TestClient(make(enable_docs=False), base_url="http://testserver")
     assert c.get("/docs").status_code == 404 and c.get("/openapi.json").status_code == 404
     assert TestClient(make(), base_url="http://testserver").get("/openapi.json").status_code == 200
+
+
+# ---- tester pass: login throttling and limiter memory ---------------------------------------------------------------------------------
+def test_one_address_cannot_try_many_accounts_without_being_throttled():
+    """Credential stuffing: 5 tries per (ip, email) used to allow unlimited tries across different emails from one address."""
+    c = TestClient(make(login_attempts=5, login_ip_attempts=6), base_url="http://testserver")
+    sign_up(c, "victim@example.org")
+    codes = [c.post("/auth/login", json={"email": f"user{i}@example.org", "password": "wrong password 123"}).status_code for i in range(8)]
+    assert codes[:6] == [401] * 6 and codes[6:] == [429, 429], codes
+    # while throttled, even the right password from that address is refused (no oracle, no success under attack)
+    assert c.post("/auth/login", json={"email": "victim@example.org", "password": PW}).status_code == 429
+
+
+def test_normal_failed_logins_still_hit_the_per_account_limit_first_and_success_resets_it():
+    c = TestClient(make(login_attempts=3, login_ip_attempts=30), base_url="http://testserver")
+    sign_up(c, "a@example.org")
+    bad = {"email": "a@example.org", "password": "wrong password 123"}
+    assert [c.post("/auth/login", json=bad).status_code for _ in range(4)] == [401, 401, 401, 429]
+
+
+def test_limiter_checks_do_not_create_keys_and_stale_keys_are_swept(monkeypatch):
+    from api import security
+
+    now = [1000.0]
+    monkeypatch.setattr(security.time, "monotonic", lambda: now[0])
+    lim = security.RateLimiter()
+    for i in range(500):  # a flood of lookups for keys that never failed must not grow the table
+        assert lim.blocked(f"login:ip:{i}@x.org", 5, 60) is False
+    assert lim.size() == 0
+    for i in range(500):
+        lim.hit(f"login:ip:{i}@x.org", 60)
+    assert lim.size() == 500
+    now[0] += 61 + lim.SWEEP_EVERY_S  # everything has aged out of its window
+    assert lim.blocked("anything", 5, 60) is False  # any call triggers the periodic sweep
+    assert lim.size() == 0
+    lim.hit("k", 60)
+    assert [lim.blocked("k", 1, 60), lim.blocked("k", 2, 60)] == [True, False]
+
+
+def test_secure_cookie_is_set_over_https_and_hsts_follows(monkeypatch):
+    """The Secure flag was only checked as a configuration value; check the actual Set-Cookie and that the session works over https."""
+    app = make(cookie_secure=True, hsts=True, allowed_origins=("https://research.example.org",))
+    c = TestClient(app, base_url="https://research.example.org")
+    r = c.post("/auth/register", json={"email": "s@example.org", "password": PW}, headers={"Origin": "https://research.example.org"})
+    assert r.status_code == 201, r.text
+    cookie = r.headers["set-cookie"].lower()
+    assert "secure" in cookie and "httponly" in cookie and "samesite=lax" in cookie
+    assert "max-age=31536000" in r.headers["strict-transport-security"].lower()
+    assert c.get("/auth/me").status_code == 200
+    out = c.post("/auth/logout", headers={"X-CSRF-Token": r.json()["csrf_token"], "Origin": "https://research.example.org"})
+    assert out.status_code == 204 and "secure" in out.headers["set-cookie"].lower()  # clearing the cookie keeps the attributes
+    assert c.get("/auth/me").status_code == 401

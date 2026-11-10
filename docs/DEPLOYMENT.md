@@ -83,7 +83,7 @@ All are optional unless marked. Booleans accept `1/true/yes/on`. Defaults are fo
 | `RESEARCHOS_ADMIN_EMAILS` | none | accounts that may deploy models / change system-model lifecycle |
 | `RESEARCHOS_SESSION_TTL_S` | 43200 | session lifetime |
 | `RESEARCHOS_MIN_PASSWORD_LENGTH` | 12 | |
-| `RESEARCHOS_LOGIN_ATTEMPTS`, `RESEARCHOS_LOGIN_WINDOW_S`, `RESEARCHOS_REGISTER_ATTEMPTS` | 5, 900, 10 (per hour per IP) | |
+| `RESEARCHOS_LOGIN_ATTEMPTS`, `RESEARCHOS_LOGIN_IP_ATTEMPTS`, `RESEARCHOS_LOGIN_WINDOW_S`, `RESEARCHOS_REGISTER_ATTEMPTS` | 5 per (IP, email), 30 per IP across all emails, 900 s window, 10 registrations per hour per IP | |
 | `RESEARCHOS_RATE_<NAME>` | see `SECURITY.md` | `count/window_seconds` or `off`; names: `UPLOAD, RUN_CREATE, SEARCH, VERIFY, REPORT, EXPERIMENT, EVALUATE, REPROCESS` |
 
 **Capacity and limits**

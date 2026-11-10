@@ -6,7 +6,7 @@ import re
 import secrets
 import threading
 import time
-from collections import defaultdict, deque
+from collections import deque
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
@@ -65,29 +65,54 @@ def token_hash(token: str) -> str:
 
 
 class RateLimiter:
-    """In-process sliding window. Fine for one API process; use Redis-backed limiting when running several."""
+    """In-process sliding window. Fine for one API process; use Redis-backed limiting when running several.
+
+    Memory is bounded: checking a key never creates it, and keys whose newest hit is older than the longest window seen are swept
+    periodically (so a flood of random emails or ids cannot grow the table forever)."""
+
+    SWEEP_EVERY_S = 60.0
 
     def __init__(self) -> None:
-        self._hits: dict[str, deque[float]] = defaultdict(deque)
+        self._hits: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
+        self._longest = 0.0
+        self._next_sweep = time.monotonic() + self.SWEEP_EVERY_S
 
     @staticmethod
     def _trim(q: deque[float], window: float, now: float) -> None:
         while q and now - q[0] > window:
             q.popleft()
 
+    def _sweep(self, now: float) -> None:  # caller holds the lock
+        if now < self._next_sweep:
+            return
+        self._next_sweep = now + self.SWEEP_EVERY_S
+        for k in [k for k, q in self._hits.items() if not q or now - q[-1] > self._longest]:
+            del self._hits[k]
+
     def blocked(self, key: str, limit: int, window: float) -> bool:
         with self._lock:
-            q = self._hits[key]
-            self._trim(q, window, time.monotonic())
+            now = time.monotonic()
+            self._longest = max(self._longest, window)
+            self._sweep(now)
+            q = self._hits.get(key)
+            if q is None:
+                return False
+            self._trim(q, window, now)
             return len(q) >= limit
 
     def hit(self, key: str, window: float) -> None:
         with self._lock:
-            q = self._hits[key]
             now = time.monotonic()
+            self._longest = max(self._longest, window)
+            self._sweep(now)
+            q = self._hits.setdefault(key, deque())
             self._trim(q, window, now)
             q.append(now)
+
+    def size(self) -> int:
+        with self._lock:
+            return len(self._hits)
 
     def reset(self, key: str) -> None:
         with self._lock:

@@ -27,7 +27,7 @@ _INT_ENV = {
     "max_upload_bytes": "RESEARCHOS_MAX_UPLOAD_BYTES", "max_documents_per_project": "RESEARCHOS_MAX_DOCUMENTS_PER_PROJECT",
     "max_corpus_bytes": "RESEARCHOS_MAX_CORPUS_BYTES", "worker_concurrency": "RESEARCHOS_WORKER_CONCURRENCY",
     "session_ttl_s": "RESEARCHOS_SESSION_TTL_S", "min_password_length": "RESEARCHOS_MIN_PASSWORD_LENGTH",
-    "login_attempts": "RESEARCHOS_LOGIN_ATTEMPTS", "login_window_s": "RESEARCHOS_LOGIN_WINDOW_S",
+    "login_attempts": "RESEARCHOS_LOGIN_ATTEMPTS", "login_ip_attempts": "RESEARCHOS_LOGIN_IP_ATTEMPTS", "login_window_s": "RESEARCHOS_LOGIN_WINDOW_S",
     "register_attempts": "RESEARCHOS_REGISTER_ATTEMPTS", "max_projects_per_user": "RESEARCHOS_MAX_PROJECTS_PER_USER",
     "max_active_runs_per_user": "RESEARCHOS_MAX_ACTIVE_RUNS_PER_USER", "sse_max_streams_per_user": "RESEARCHOS_SSE_MAX_STREAMS_PER_USER",
     "sse_max_streams_total": "RESEARCHOS_SSE_MAX_STREAMS_TOTAL",
@@ -84,6 +84,7 @@ class Settings:
     max_active_runs_per_user: int = 2
     max_runs_per_project: int = 200
     login_attempts: int = 5  # failures per (ip, email) per window before 429
+    login_ip_attempts: int = 30  # failures per ip (any emails) per window before 429: stops one address trying every account
     login_window_s: int = 900
     register_attempts: int = 10  # registrations per ip per window
     register_window_s: int = 3600
