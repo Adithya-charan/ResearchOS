@@ -23,7 +23,7 @@ pillow==13.0.0
 psycopg-binary==3.3.8
 psycopg==3.3.8
 pycparser==3.12
-pydantic-core==2.50.2
+pydantic-core==2.50.4
 pydantic==2.14.2
 pymupdf==1.28.2
 python-multipart==0.0.33
